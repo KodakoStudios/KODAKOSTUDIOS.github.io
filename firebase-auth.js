@@ -17,11 +17,13 @@ const provider = new GoogleAuthProvider();
 auth.languageCode = "ja";
 let currentUser = null;
 let authReady = false;
+let authErrorShown = false;
 
 const showStatus = (message, isError = false) => {
   if (!status) return;
   status.textContent = message;
   status.dataset.state = isError ? "error" : "info";
+  if (isError) authErrorShown = true;
 };
 
 const updateButtons = () => {
@@ -50,6 +52,7 @@ loginButtons.forEach((button) => {
     if (!authReady) return;
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
+    authErrorShown = false;
     showStatus(currentUser ? "ログアウトしています…" : "Googleログインを開いています…");
     try {
       if (currentUser) {
@@ -76,7 +79,9 @@ onAuthStateChanged(
     currentUser = user;
     authReady = true;
     updateButtons();
-    showStatus(user ? "Googleアカウントでログイン中です。" : "Googleアカウントでログインできます。");
+    if (!authErrorShown) {
+      showStatus(user ? "Googleアカウントでログイン中です。" : "Googleアカウントでログインできます。");
+    }
   },
   (error) => {
     authReady = true;
