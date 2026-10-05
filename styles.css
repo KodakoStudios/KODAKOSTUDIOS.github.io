@@ -69,6 +69,10 @@ a{color:inherit}
 .video-art-watch{background:linear-gradient(135deg,#275be7,#6ba2ff)}
 .video-art-live{background:linear-gradient(135deg,#ec73b6,#ffb18e)}
 .video-art-shorts{background:linear-gradient(135deg,#252736,#6059bd)}
+.youtube-video-link{color:inherit;text-decoration:none}
+.youtube-video-loaded{background-position:center;background-size:cover}
+.youtube-api-status[data-state="success"] i{background:#27a36a}
+.youtube-api-status[data-state="error"] i{background:#d64747}
 .play-icon{display:grid;place-items:center;width:55px;height:55px;padding-left:4px;border-radius:50%;background:#ffffffeb;color:var(--blue);font-size:18px;box-shadow:0 5px 16px #1113}
 .video-art-live .play-icon{color:#e64d8a}.video-art-shorts .play-icon{color:#4540a3}
 .video-label{position:absolute;left:13px;top:13px;padding:4px 9px;border-radius:20px;background:#fff;color:var(--ink);font-size:10px;font-weight:bold}
@@ -396,6 +400,18 @@ a{color:inherit}
 .toggle-setting input:checked+i:after{transform:translateX(18px)}
 .toggle-setting input:focus-visible+i{outline:2px solid var(--blue);outline-offset:2px}
 .subscription-settings>p{color:var(--muted);font-size:12px}
+#developer-mode-panel[hidden],.developer-mode-feedback[hidden]{display:none}
+.developer-mode-feedback[data-state="error"]{color:#b42318}
+.developer-mode-card{border-color:#edce83;background:#fffdf7}
+.developer-mode-warning{padding:12px;border-radius:8px;background:#fff5dc;color:#684b12;font-size:12px}
+.developer-mode-identity{color:var(--muted);font-size:11px}
+.developer-mode-identity code{overflow-wrap:anywhere}
+.developer-control{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.developer-control h3{margin:0 0 8px;font-size:14px}
+.developer-control>p{font-size:11px;color:var(--muted)}
+.developer-control select,.developer-control textarea{width:100%;padding:10px 11px;border:1px solid #dfe2ec;border-radius:8px;background:white;color:var(--ink);font:inherit;font-size:12px}
+.developer-test-donations{display:grid;gap:7px;padding-left:20px;color:var(--muted);font-size:11px}
+.developer-test-donations li span,.developer-test-donations li small{display:block}
 .subscription-management{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0;padding:15px;border-radius:9px;background:#f7f8fb}
 .subscription-management>span{display:flex;flex-direction:column}
 .subscription-management b{font-size:12px}.subscription-management small{max-width:440px;color:var(--muted);font-size:10px}

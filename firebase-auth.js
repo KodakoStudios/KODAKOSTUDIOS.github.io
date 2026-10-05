@@ -1,10 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import {
   getAuth,
+  browserLocalPersistence,
   GoogleAuthProvider,
-  getRedirectResult,
   onAuthStateChanged,
-  signInWithRedirect,
+  setPersistence,
+  signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -15,6 +16,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 auth.languageCode = "ja";
+provider.setCustomParameters({ prompt: "select_account" });
 let currentUser = null;
 let authReady = false;
 let authErrorShown = false;
@@ -42,6 +44,12 @@ const getAuthErrorMessage = (error) => {
       return `このサイトのドメイン（${window.location.hostname}）がFirebase Authenticationで未承認です。承認済みドメインに追加してください。`;
     case "auth/network-request-failed":
       return "ネットワークに接続できません。接続を確認して、もう一度お試しください。";
+    case "auth/popup-blocked":
+      return "ログイン画面がブロックされました。このサイトのポップアップを許可してから、もう一度お試しください。";
+    case "auth/popup-closed-by-user":
+      return "ログイン画面が閉じられたため、ログインを完了できませんでした。もう一度お試しください。";
+    case "auth/cancelled-popup-request":
+      return "別のログイン画面が開かれたため、このログインをキャンセルしました。";
     default:
       return `ログイン処理に失敗しました（${error.code || "unknown"}）。時間をおいて再度お試しください。`;
   }
@@ -57,8 +65,14 @@ loginButtons.forEach((button) => {
     try {
       if (currentUser) {
         await signOut(auth);
+        authErrorShown = false;
+        showStatus("ログアウトしました。");
       } else {
-        await signInWithRedirect(auth, provider);
+        const credential = await signInWithPopup(auth, provider);
+        currentUser = credential.user;
+        authErrorShown = false;
+        updateButtons();
+        showStatus("Googleアカウントでログイン中です。");
       }
     } catch (error) {
       showStatus(getAuthErrorMessage(error), true);
@@ -69,23 +83,27 @@ loginButtons.forEach((button) => {
   });
 });
 
-getRedirectResult(auth).catch((error) => {
-  showStatus(getAuthErrorMessage(error), true);
-});
-
-onAuthStateChanged(
-  auth,
-  (user) => {
-    currentUser = user;
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    onAuthStateChanged(
+      auth,
+      (user) => {
+        currentUser = user;
+        authReady = true;
+        updateButtons();
+        if (!authErrorShown) {
+          showStatus(user ? "Googleアカウントでログイン中です。" : "Googleアカウントでログインできます。");
+        }
+      },
+      (error) => {
+        authReady = true;
+        updateButtons();
+        showStatus(`認証状態を確認できませんでした（${error.code || "unknown"}）。`, true);
+      },
+    );
+  })
+  .catch((error) => {
     authReady = true;
     updateButtons();
-    if (!authErrorShown) {
-      showStatus(user ? "Googleアカウントでログイン中です。" : "Googleアカウントでログインできます。");
-    }
-  },
-  (error) => {
-    authReady = true;
-    updateButtons();
-    showStatus(`認証状態を確認できませんでした（${error.code || "unknown"}）。`, true);
-  },
-);
+    showStatus(getAuthErrorMessage(error), true);
+  });

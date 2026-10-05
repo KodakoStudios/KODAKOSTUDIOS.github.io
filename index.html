@@ -109,23 +109,23 @@
     <section id="videos" class="videos-section section-wrap">
       <div class="section-heading">
         <div><p class="eyebrow">WATCH & ENJOY</p><h2>YouTube 最新コンテンツ</h2></div>
-        <span class="api-badge"><i></i> YouTube連携準備中</span>
+        <span class="api-badge youtube-api-status" id="youtube-api-status" role="status" aria-live="polite"><i></i> YouTube情報を確認中</span>
       </div>
       <div class="video-grid">
-        <article class="video-card">
-          <div class="video-art video-art-watch"><span class="play-icon">▶</span><span class="video-label">最新動画</span></div>
-          <div class="video-card-copy"><h3>最新の動画</h3><p>YouTubeチャンネル設定後に表示します</p></div>
+        <article class="video-card" data-youtube-kind="video">
+          <a class="video-art video-art-watch youtube-video-link" href="https://youtube.com/KodakoOfficial" target="_blank" rel="noopener noreferrer" aria-label="YouTubeで最新動画を見る"><span class="play-icon">▶</span><span class="video-label">最新動画</span></a>
+          <div class="video-card-copy"><h3>最新の動画</h3><p>動画情報を読み込んでいます…</p></div>
         </article>
-        <article class="video-card">
-          <div class="video-art video-art-live"><span class="play-icon">▶</span><span class="video-label">ライブ配信</span></div>
-          <div class="video-card-copy"><h3>最新のライブ</h3><p>YouTubeチャンネル設定後に表示します</p></div>
+        <article class="video-card" data-youtube-kind="live">
+          <a class="video-art video-art-live youtube-video-link" href="https://youtube.com/KodakoOfficial" target="_blank" rel="noopener noreferrer" aria-label="YouTubeで最新ライブを見る"><span class="play-icon">▶</span><span class="video-label">ライブ配信</span></a>
+          <div class="video-card-copy"><h3>最新のライブ</h3><p>動画情報を読み込んでいます…</p></div>
         </article>
-        <article class="video-card">
-          <div class="video-art video-art-shorts"><span class="play-icon">▶</span><span class="video-label">Shorts</span></div>
-          <div class="video-card-copy"><h3>最新のショート</h3><p>YouTubeチャンネル設定後に表示します</p></div>
+        <article class="video-card" data-youtube-kind="short">
+          <a class="video-art video-art-shorts youtube-video-link" href="https://youtube.com/KodakoOfficial" target="_blank" rel="noopener noreferrer" aria-label="YouTubeで最新ショートを見る"><span class="play-icon">▶</span><span class="video-label">Shorts</span></a>
+          <div class="video-card-copy"><h3>最新のショート</h3><p>動画情報を読み込んでいます…</p></div>
         </article>
       </div>
-      <p class="section-note">最新動画・ライブ配信・ショートの自動表示はYouTube API連携後に有効になります。</p>
+      <p class="section-note" id="youtube-api-note">KODAKO STUDIOSのゲームチャンネルから最新コンテンツを取得しています。</p>
     </section>
 
     <aside class="ad-slot section-wrap" aria-label="広告">
@@ -218,6 +218,8 @@
     <p class="lightbox-description"></p>
   </dialog>
   <script src="script.js"></script>
+  <script src="youtube-config.js"></script>
+  <script src="youtube-api.js"></script>
   <script type="module" src="firebase-auth.js"></script>
 </body>
 </html>
