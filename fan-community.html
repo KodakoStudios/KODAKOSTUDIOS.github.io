@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="KODAKO STUDIOSのファンアートとファンコメントを楽しむファン広場です。">
+  <title>ファン広場 | KODAKOSTUDIOS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="fan-community-page" id="top">
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="KODAKOSTUDIOS ホーム"><img src="assets/logo.png" alt="KODAKO STUDIOS"></a>
+    <nav class="top-nav" aria-label="メインメニュー">
+      <a href="about.html">KODAKO STUDIOSとは？</a>
+      <a href="index.html#characters">キャラクター</a>
+      <a href="index.html#support">支援する</a>
+    </nav>
+    <form class="site-search" role="search">
+      <label class="visually-hidden" for="page-search">このページを検索</label>
+      <input id="page-search" type="search" placeholder="ページ内を検索" autocomplete="off">
+      <button type="submit" aria-label="検索">検索</button>
+      <span class="visually-hidden search-status" role="status" aria-live="polite"></span>
+    </form>
+    <button class="menu-toggle" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="site-menu"><span></span><span></span><span></span></button>
+    <nav class="menu-panel" id="site-menu" aria-label="サイトメニュー" hidden>
+      <a href="about.html">KODAKO STUDIOSとは？</a><a href="index.html#characters">キャラクター</a><a href="index.html#videos">YouTube動画</a><a href="index.html#community">公式SNS・Discord</a><a href="fan-community.html">ファン広場</a><a href="index.html#support">活動支援</a><a href="settings.html">プロフィール・設定</a><a href="https://x.com/KodakoStudios" target="_blank" rel="noopener noreferrer">X <span>↗</span></a><a href="https://www.instagram.com/kodako_studios/" target="_blank" rel="noopener noreferrer">Instagram <span>↗</span></a><a href="https://www.tiktok.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">TikTok <span>↗</span></a><a href="https://www.threads.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">Threads <span>↗</span></a><a href="https://www.facebook.com/profile.php?id=61554117201107" target="_blank" rel="noopener noreferrer">Facebook <span>↗</span></a><a href="https://discord.gg/fH2w4ce4Pd" target="_blank" rel="noopener noreferrer">Discord <span>↗</span></a><a href="https://www.amazon.jp/hz/wishlist/ls/L363S1KFPWRE?ref_=wl_share" target="_blank" rel="noopener noreferrer">Amazon支援リスト <span>↗</span></a><a href="https://suzuri.jp/KodakoOfficial" target="_blank" rel="noopener noreferrer">公式ショップ（SUZURI）<span>↗</span></a><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+  </header>
+  <main class="fan-community-main">
+    <section class="fan-community-hero">
+      <p class="eyebrow">KODAKO STUDIOS COMMUNITY</p>
+      <h1>ファン広場</h1>
+      <p>ファンアート、ファンコメント、ファンビデオをシェアして、みんなで楽しもう。</p>
+      <div class="fan-community-actions">
+        <a class="button button-primary" href="#create-post">投稿する <span aria-hidden="true">＋</span></a>
+        <button class="button button-google" type="button" data-firebase-login disabled><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button>
+      </div>
+      <small data-auth-status role="status" aria-live="polite">Firebaseに接続しています…Googleログイン後も投稿内容はまだ保存されません。</small>
+    </section>
+    <div class="fan-community-layout">
+      <aside class="fan-sidebar">
+        <nav class="fan-community-nav" aria-label="ファン広場メニュー">
+          <a class="active" href="#community-feed">すべての投稿</a>
+          <a href="#community-feed" data-feed-filter="art">ファンアート</a>
+          <a href="#community-feed" data-feed-filter="comment">ファンコメント</a>
+          <a href="settings.html">プロフィール・設定</a>
+        </nav>
+        <div class="fan-rules-card"><b>みんなが楽しい広場に</b><p>他の人を尊重し、作品やコメントの権利を大切にしましょう。公開範囲を確認してから投稿してください。</p><a href="terms.html">利用規約を見る →</a></div>
+      </aside>
+      <div class="fan-feed-column">
+        <section class="fan-create-card" id="create-post">
+          <div class="fan-create-heading"><span class="fan-avatar">K</span><div><b>ファン広場に投稿</b><small>匿名またはGoogleアカウントで参加</small></div></div>
+          <div class="fan-create-actions"><a href="#fan-art-composer">ファンアート</a><a href="#fan-comment-composer">ファンコメント</a><a href="#fan-video-composer">ファンビデオ</a></div>
+        </section>
+        <nav class="feed-tabs" aria-label="投稿の種類">
+          <button type="button" class="active" data-feed-filter="all" aria-pressed="true">すべて</button>
+          <button type="button" data-feed-filter="art" aria-pressed="false">ファンアート</button>
+          <button type="button" data-feed-filter="comment" aria-pressed="false">コメント</button>
+          <button type="button" data-feed-filter="video" aria-pressed="false">ファンビデオ</button>
+        </nav>
+        <div class="feed-pending-note ai-detection-note" id="community-feed"><span aria-hidden="true">✦</span><p><b>生成AI判別サポート</b><br>AI生成を利用した作品・動画・コメントには、投稿時に必ず「AI生成」タグを付けてください。自動判別機能は準備中です。現在は投稿者の申告に基づいてタグを表示します。</p></div>
+        <section class="fan-composer-card" id="fan-art-composer" data-post-type="art">
+          <div class="composer-title"><span class="composer-icon art-icon">✿</span><div><h2>ファンアートを投稿</h2><p>あなたの作品をファン広場でシェアしよう。</p></div></div>
+          <label class="form-label" for="fan-art-file">画像ファイル（PNG・JPEG・WebP、10MB以下）</label>
+          <input id="fan-art-file" type="file" accept="image/png,image/jpeg,image/webp">
+          <div class="fan-art-preview" id="fan-art-preview" hidden><img alt="ファンアートのプレビュー"><button type="button" class="preview-remove" aria-label="画像をプレビューから削除">×</button></div>
+          <span class="feature-pending" id="fan-art-status" role="status" aria-live="polite"></span>
+          <label class="form-label ai-use-field" for="fan-art-ai-use">生成AIの利用（必須）</label>
+          <select class="ai-use-select" id="fan-art-ai-use" required>
+            <option value="" selected disabled>生成AIを利用したか選択してください</option>
+            <option value="no">生成AIを利用していない</option>
+            <option value="yes">生成AIを利用した（AI生成タグを付ける）</option>
+          </select>
+          <span class="ai-tag-preview" id="fan-art-ai-tag" hidden>AI生成</span>
+          <fieldset class="visibility-options">
+            <legend class="form-label">公開範囲</legend>
+            <label><input type="radio" name="fan-art-visibility" value="public" checked> 公開</label>
+            <label><input type="radio" name="fan-art-visibility" value="private"> 非公開（投稿者とサイトオーナーのみ）</label>
+            <label><input type="radio" name="fan-art-visibility" value="selected"> 選択したユーザーのみ</label>
+          </fieldset>
+          <label class="form-label" for="fan-art-recipients">閲覧を許可するユーザー名</label>
+          <input id="fan-art-recipients" type="text" placeholder="ユーザー名を入力（複数の場合はカンマ区切り）">
+          <small class="feature-pending" id="fan-art-recipient-status">選択したユーザーの検索・権限確認はFirebase連携後に有効になります。</small>
+          <div class="composer-submit-row"><button class="button button-google" type="button" disabled>Googleでログインして投稿</button><button class="button button-light" type="button" disabled>匿名で投稿</button></div>
+        </section>
+        <section class="fan-composer-card" id="fan-comment-composer" data-post-type="comment">
+          <div class="composer-title"><span class="composer-icon comment-icon">♡</span><div><h2>ファンコメントを投稿</h2><p>作品の感想や応援メッセージを送ろう。</p></div></div>
+          <label class="form-label" for="fan-comment-name">表示名（任意・匿名の場合は空欄）</label>
+          <input id="fan-comment-name" type="text" maxlength="40" placeholder="ニックネーム">
+          <label class="form-label" for="fan-comment-text">コメント（500文字以内）</label>
+          <textarea id="fan-comment-text" rows="4" maxlength="500" placeholder="やさしい言葉でコメントを書いてください"></textarea>
+          <label class="form-label ai-use-field" for="fan-comment-ai-use">生成AIの利用（必須）</label>
+          <select class="ai-use-select" id="fan-comment-ai-use" required>
+            <option value="" selected disabled>生成AIを利用したか選択してください</option>
+            <option value="no">生成AIを利用していない</option>
+            <option value="yes">生成AIを利用した（AI生成タグを付ける）</option>
+          </select>
+          <span class="ai-tag-preview" id="fan-comment-ai-tag" hidden>AI生成</span>
+          <button class="button button-primary" type="button" disabled>コメントを投稿</button>
+          <small class="feature-pending">コメントの保存・表示はFirebase連携後に有効になります。</small>
+        </section>
+        <section class="fan-composer-card video-composer-card" id="fan-video-composer" data-post-type="video">
+          <div class="composer-title"><span class="composer-icon video-icon">▶</span><div><h2>ファンビデオを投稿</h2><p>ゲームプレイや作品動画をシェアしよう。</p></div></div>
+          <div class="video-quality-info">
+            <div><b>通常メンバー</b><span>最大720p / 30fps</span><small>投稿動画はサーバー側で上限に合わせて変換予定</small></div>
+            <div class="premium-quality"><b>サブスクメンバー</b><span>最大1080p / 60fps</span><small>サブスク決済・動画変換の準備中</small></div>
+          </div>
+          <label class="form-label" for="fan-video-file">動画ファイル（MP4・WebM）</label>
+          <input id="fan-video-file" type="file" accept="video/mp4,video/webm">
+          <label class="form-label ai-use-field" for="fan-video-ai-use">生成AIの利用（必須）</label>
+          <select class="ai-use-select" id="fan-video-ai-use" required>
+            <option value="" selected disabled>生成AIを利用したか選択してください</option>
+            <option value="no">生成AIを利用していない</option>
+            <option value="yes">生成AIを利用した（AI生成タグを付ける）</option>
+          </select>
+          <span class="ai-tag-preview" id="fan-video-ai-tag" hidden>AI生成</span>
+          <div class="video-upload-preview" id="fan-video-preview" hidden>
+            <video controls playsinline preload="metadata"></video>
+            <button type="button" class="preview-remove" aria-label="動画をプレビューから削除">×</button>
+          </div>
+          <span class="feature-pending" id="fan-video-status" role="status" aria-live="polite">アップロードと解像度・フレームレートの変換は、サーバー連携後に有効になります。</span>
+          <fieldset class="visibility-options">
+            <legend class="form-label">公開範囲</legend>
+            <label><input type="radio" name="fan-video-visibility" value="public" checked> 公開</label>
+            <label><input type="radio" name="fan-video-visibility" value="private"> 非公開（投稿者とサイトオーナーのみ）</label>
+            <label><input type="radio" name="fan-video-visibility" value="selected"> 選択したユーザーのみ</label>
+          </fieldset>
+          <label class="form-label" for="fan-video-recipients">閲覧を許可するユーザー名</label>
+          <input id="fan-video-recipients" type="text" placeholder="ユーザー名を入力（複数の場合はカンマ区切り）" disabled>
+          <div class="composer-submit-row"><button class="button button-google" type="button" disabled>ログインして動画を投稿</button><button class="button button-light" type="button" disabled>サブスクプランを確認</button></div>
+          <small class="feature-pending">投稿・公開範囲の制御、サブスク判定、1080p/60fps変換はFirebase・動画処理・Stripe連携後に有効になります。現在は投稿されません。</small>
+        </section>
+      </div>
+      <aside class="fan-community-aside">
+        <div class="fan-profile-card"><img src="assets/logo-community.png" alt="KODAKO STUDIOS COMMUNITY"><h2>KODAKO STUDIOS</h2><p>公式ファンコミュニティ</p><a class="button button-light" href="about.html">チームについて</a></div>
+        <div class="fan-aside-note"><b>プライバシーについて</b><p>非公開投稿は投稿者本人とサイトオーナーのみ閲覧できる設計を予定しています。表示上の設定だけでは非公開になりません。実際の制御にはFirebaseの認証とアクセスルールが必要です。</p></div>
+      </aside>
+    </div>
+  </main>
+  <footer class="footer">
+    <a class="footer-brand" href="index.html"><img src="assets/logo.png" alt="KODAKO STUDIOS"></a>
+    <span>© <span id="year"></span> KODAKOSTUDIOS</span>
+    <span class="footer-links"><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a></span>
+  </footer>
+  <a class="top-button" href="#top" aria-label="ページの先頭へ戻る">TOP <span aria-hidden="true">↑</span></a>
+  <script src="script.js"></script>
+  <script type="module" src="firebase-auth.js"></script>
+</body>
+</html>
