@@ -2,8 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebas
 import {
   getAuth,
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -13,6 +14,7 @@ const loginButtons = [...document.querySelectorAll("[data-firebase-login]")];
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+auth.languageCode = "ja";
 let currentUser = null;
 let authReady = false;
 
@@ -32,14 +34,12 @@ const updateButtons = () => {
 
 const getAuthErrorMessage = (error) => {
   switch (error.code) {
-    case "auth/unauthorized-domain":
-      return "このサイトのドメインがFirebase Authenticationで未承認です。Firebase ConsoleのAuthentication設定で現在のドメインを追加してください。";
     case "auth/operation-not-allowed":
       return "GoogleログインがFirebase Consoleで有効になっているか確認してください。";
-    case "auth/popup-blocked":
-      return "ログイン画面がブロックされました。ブラウザーのポップアップを許可して、もう一度お試しください。";
-    case "auth/popup-closed-by-user":
-      return "ログインをキャンセルしました。";
+    case "auth/unauthorized-domain":
+      return `このサイトのドメイン（${window.location.hostname}）がFirebase Authenticationで未承認です。承認済みドメインに追加してください。`;
+    case "auth/network-request-failed":
+      return "ネットワークに接続できません。接続を確認して、もう一度お試しください。";
     default:
       return `ログイン処理に失敗しました（${error.code || "unknown"}）。時間をおいて再度お試しください。`;
   }
@@ -55,7 +55,7 @@ loginButtons.forEach((button) => {
       if (currentUser) {
         await signOut(auth);
       } else {
-        await signInWithPopup(auth, provider);
+        await signInWithRedirect(auth, provider);
       }
     } catch (error) {
       showStatus(getAuthErrorMessage(error), true);
@@ -64,6 +64,10 @@ loginButtons.forEach((button) => {
       updateButtons();
     }
   });
+});
+
+getRedirectResult(auth).catch((error) => {
+  showStatus(getAuthErrorMessage(error), true);
 });
 
 onAuthStateChanged(

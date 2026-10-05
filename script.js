@@ -13,13 +13,16 @@ if (topButton) {
 const lightbox = document.querySelector(".character-lightbox");
 if (lightbox) {
   const lightboxImage = lightbox.querySelector("img");
-  const lightboxCaption = lightbox.querySelector("p");
+  const lightboxCaption = lightbox.querySelector(".lightbox-caption");
+  const lightboxDescription = lightbox.querySelector(".lightbox-description");
 
   document.querySelectorAll(".character-zoom").forEach((button) => {
     button.addEventListener("click", () => {
       lightboxImage.src = button.dataset.image;
       lightboxImage.alt = button.dataset.caption || "キャラクターアート";
       lightboxCaption.textContent = button.dataset.caption || "";
+      lightboxDescription.textContent = button.dataset.description || "";
+      lightboxDescription.hidden = !button.dataset.description;
       lightbox.showModal();
     });
   });
