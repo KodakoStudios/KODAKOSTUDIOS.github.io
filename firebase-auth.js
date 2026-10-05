@@ -12,8 +12,8 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const status = document.querySelector("[data-auth-status]");
 const loginButtons = [...document.querySelectorAll("[data-firebase-login]")];
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 auth.languageCode = "ja";
 provider.setCustomParameters({ prompt: "select_account" });

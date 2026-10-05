@@ -5,9 +5,8 @@
   const cards = [...document.querySelectorAll("[data-youtube-kind]")];
   if (!config || !status || !note || cards.length === 0) return;
 
-  const cacheKey = "kodakoYouTubeLatestV1";
+  const cacheKey = "kodakoYouTubeLatestV3";
   const cacheDuration = 6 * 60 * 60 * 1000;
-  const channelUrl = "https://youtube.com/KodakoOfficial";
   const apiUrl = "https://www.googleapis.com/youtube/v3";
 
   const setStatus = (message, state = "info") => {
@@ -57,14 +56,20 @@
       ? { id: config.channelId, part: "contentDetails" }
       : { forUsername: config.channelUsername, part: "contentDetails" };
     const channelData = await request("channels", channelParams);
-    const uploadsPlaylist = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    const channel = channelData.items?.[0];
+    if (!channel) {
+      const error = new Error("YouTubeチャンネルが見つかりません。youtube-config.jsのchannelIdを確認してください。");
+      error.reason = "channelNotFound";
+      throw error;
+    }
+    const uploadsPlaylist = channel.contentDetails?.relatedPlaylists?.uploads;
     if (!uploadsPlaylist) {
       throw new Error("YouTubeチャンネルを確認できません。チャンネルIDまたはユーザー名を確認してください。");
     }
 
     const videos = [];
     let pageToken = "";
-    for (let page = 0; page < 3; page += 1) {
+    for (let page = 0; page < 60; page += 1) {
       const playlistData = await request("playlistItems", {
         part: "contentDetails",
         playlistId: uploadsPlaylist,
@@ -91,6 +96,7 @@
           duration: durationInSeconds(video.contentDetails?.duration || ""),
           isLive: Boolean(
             video.liveStreamingDetails?.actualStartTime ||
+            video.liveStreamingDetails?.actualEndTime ||
             video.liveStreamingDetails?.scheduledStartTime ||
             (video.snippet?.liveBroadcastContent && video.snippet.liveBroadcastContent !== "none")
           ),
@@ -98,6 +104,10 @@
       }
       pageToken = playlistData.nextPageToken || "";
       if (!pageToken) break;
+      const hasRegularVideo = videos.some((video) => !video.isLive && video.duration > 180);
+      const hasLiveBroadcast = videos.some((video) => video.isLive);
+      const hasShort = videos.some((video) => !video.isLive && video.duration > 0 && video.duration <= 180);
+      if (hasRegularVideo && hasLiveBroadcast && hasShort) break;
     }
     videos.sort((first, second) => Date.parse(second.publishedAt) - Date.parse(first.publishedAt));
 
@@ -135,7 +145,12 @@
       if (video) {
         renderVideo(kind, video);
       } else {
-        showCardMessage(kind, "該当するコンテンツはまだ見つかりません。");
+        const emptyMessage = kind === "video"
+          ? "3分を超える通常動画が最近のアップロード内に見つかりません。"
+          : kind === "live"
+            ? "最近のライブ配信は見つかりません。"
+            : "該当するショート動画はまだ見つかりません。";
+        showCardMessage(kind, emptyMessage);
       }
     });
   };
@@ -158,9 +173,12 @@
     .catch((error) => {
       console.error("YouTube API request failed:", error);
       const quotaExceeded = error.reason === "quotaExceeded";
+      const channelNotFound = error.reason === "channelNotFound";
       setStatus(quotaExceeded ? "API利用上限に達しました" : "YouTube情報を取得できません", "error");
       note.textContent = quotaExceeded
         ? "YouTube Data APIの1日あたりの割り当て上限です。翌日以降に再度表示されます。"
+        : channelNotFound
+          ? "YouTubeチャンネルが見つかりません。youtube-config.jsに正しいチャンネルID（UCから始まる値）を設定してください。"
         : "YouTube APIキー、キーのHTTPリファラー制限、チャンネル設定、ネットワーク接続を確認してください。";
       cards.forEach((card) => {
         card.querySelector(".video-card-copy p").textContent = "YouTubeの最新情報を読み込めませんでした。";

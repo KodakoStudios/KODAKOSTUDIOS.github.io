@@ -157,7 +157,12 @@ document.querySelectorAll(".ai-use-select").forEach((select) => {
 
 const feedFilterButtons = document.querySelectorAll("[data-feed-filter]");
 if (feedFilterButtons.length) {
-  const feedItems = document.querySelectorAll("[data-post-type]");
+  const getFeedItems = () => document.querySelectorAll("[data-post-type]");
+  const applyFeedFilter = (filter) => {
+    getFeedItems().forEach((item) => {
+      item.hidden = filter !== "all" && item.dataset.postType !== filter;
+    });
+  };
   feedFilterButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       if (button.tagName === "A") event.preventDefault();
@@ -167,9 +172,7 @@ if (feedFilterButtons.length) {
         item.classList.toggle("active", selected);
         if (item.hasAttribute("aria-pressed")) item.setAttribute("aria-pressed", String(selected));
       });
-      feedItems.forEach((item) => {
-        item.hidden = filter !== "all" && item.dataset.postType !== filter;
-      });
+      applyFeedFilter(filter);
     });
   });
 }

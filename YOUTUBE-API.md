@@ -13,11 +13,11 @@ The home page requests the latest video, live broadcast, and Short from the KODA
 5. Put the key in `youtube-config.js` as the `apiKey` value. The key is necessarily visible in a static GitHub Pages site, so referrer and API restrictions are required; never use an unrestricted key.
 6. Publish `youtube-config.js`, `youtube-api.js`, `index.html`, and `styles.css` to GitHub Pages.
 
-The current channel lookup uses the legacy YouTube username `KodakoOfficial`. If YouTube does not resolve that username for the channel, set `channelId` in `youtube-config.js` to the channel's ID (starting with `UC`) and leave `channelUsername` in place as a fallback/reference.
+The game channel is configured by its channel ID in `youtube-config.js`. Channel IDs are more reliable than legacy usernames. To use another channel, replace `channelId` with its ID (starting with `UC`). If no `channelId` is configured, the script falls back to `channelUsername`.
 
 ## Limits and classification
 
-- Each uncached page load uses low-cost API reads and scans up to 150 recent uploads, stopping early when all three content types are found. Results are cached for six hours per browser tab.
-- YouTube's Data API does not expose a definitive Shorts classification in the video resource. This page labels non-live videos up to three minutes long as Shorts; a short regular video may therefore be classified as a Short.
-- The live card selects the latest live or scheduled broadcast found in the uploads playlist. It scans up to 150 recent uploads; a broadcast may not appear until YouTube lists it there.
+- Each uncached page load uses low-cost API reads and scans up to 3,000 recent uploads, stopping early when a regular video, live broadcast, and Short are all found. This helps find regular videos when many Shorts and live-stream archives were published recently. Results are cached for six hours per browser tab.
+- YouTube's Data API does not expose a definitive Shorts classification in the video resource. This page labels non-live videos up to three minutes long as Shorts; a short regular video may therefore be classified as a Short. The latest-video card only shows videos longer than three minutes, so a Short is never used as a fallback there.
+- The live card selects the latest live, scheduled, or archived broadcast found in the uploads playlist. Archived livestreams are excluded from the regular-video card. A broadcast may not appear until YouTube lists it there or exposes its live-stream metadata.
 - Google Cloud's YouTube Data API quota is subject to Google's current quota limits and terms. If a key is missing, blocked, or out of quota, the page shows a readable status and does not pretend data loaded.
