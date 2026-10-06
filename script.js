@@ -13,6 +13,7 @@ if (topButton) {
 const lightbox = document.querySelector(".character-lightbox");
 if (lightbox) {
   const lightboxImage = lightbox.querySelector("img");
+  const lightboxCredit = lightbox.querySelector(".lightbox-credit");
   const lightboxCaption = lightbox.querySelector(".lightbox-caption");
   const lightboxDescription = lightbox.querySelector(".lightbox-description");
 
@@ -20,6 +21,8 @@ if (lightbox) {
     button.addEventListener("click", () => {
       lightboxImage.src = button.dataset.image;
       lightboxImage.alt = button.dataset.caption || "キャラクターアート";
+      lightboxCredit.textContent = button.dataset.credit || "";
+      lightboxCredit.hidden = !button.dataset.credit;
       lightboxCaption.textContent = button.dataset.caption || "";
       lightboxDescription.textContent = button.dataset.description || "";
       lightboxDescription.hidden = !button.dataset.description;
@@ -33,115 +36,14 @@ if (lightbox) {
   });
 }
 
-const fanArtInput = document.getElementById("fan-art-file");
-if (fanArtInput) {
-  const preview = document.getElementById("fan-art-preview");
-  const previewImage = preview.querySelector("img");
-  const status = document.getElementById("fan-art-status");
-  let previewUrl = "";
-
-  const clearPreview = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = "";
-    previewImage.removeAttribute("src");
-    preview.hidden = true;
-    fanArtInput.value = "";
-  };
-
-  fanArtInput.addEventListener("change", () => {
-    const file = fanArtInput.files[0];
-    if (!file) return;
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      clearPreview();
-      status.textContent = "PNG・JPEG・WebP形式の画像を選択してください。";
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      clearPreview();
-      status.textContent = "画像は10MB以下のファイルを選択してください。";
-      return;
-    }
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = URL.createObjectURL(file);
-    previewImage.src = previewUrl;
-    previewImage.alt = `${file.name}のプレビュー`;
-    preview.hidden = false;
-    status.textContent = "プレビューを表示しています。投稿はまだ保存されていません。";
+const mediaSupportDialog = document.getElementById("media-support-dialog");
+if (mediaSupportDialog) {
+  document.querySelectorAll("[data-support-modal-open]").forEach((button) => {
+    button.addEventListener("click", () => mediaSupportDialog.showModal());
   });
-
-  preview.querySelector(".preview-remove").addEventListener("click", clearPreview);
-  const visibilityInputs = document.querySelectorAll('input[name="fan-art-visibility"]');
-  const recipientsInput = document.getElementById("fan-art-recipients");
-  const recipientsStatus = document.getElementById("fan-art-recipient-status");
-  const updateRecipientAvailability = () => {
-    const selectedOnly = document.querySelector('input[name="fan-art-visibility"]:checked')?.value === "selected";
-    recipientsInput.disabled = !selectedOnly;
-    recipientsStatus.textContent = selectedOnly
-      ? "ユーザー名の確認・権限設定はFirebase連携後に有効になります。"
-      : "「選択したユーザーのみ」を選ぶと閲覧者を指定できます。指定した公開範囲は現在保存されません。";
-  };
-  visibilityInputs.forEach((input) => input.addEventListener("change", updateRecipientAvailability));
-  updateRecipientAvailability();
-
-  window.addEventListener("beforeunload", () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  });
-}
-
-const fanVideoInput = document.getElementById("fan-video-file");
-if (fanVideoInput) {
-  const preview = document.getElementById("fan-video-preview");
-  const video = preview.querySelector("video");
-  const status = document.getElementById("fan-video-status");
-  const visibilityInputs = document.querySelectorAll('input[name="fan-video-visibility"]');
-  const recipientsInput = document.getElementById("fan-video-recipients");
-  let videoUrl = "";
-
-  const clearVideoPreview = () => {
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
-    videoUrl = "";
-    video.removeAttribute("src");
-    video.load();
-    preview.hidden = true;
-    fanVideoInput.value = "";
-  };
-
-  fanVideoInput.addEventListener("change", () => {
-    const file = fanVideoInput.files[0];
-    if (!file) return;
-    if (!["video/mp4", "video/webm"].includes(file.type)) {
-      clearVideoPreview();
-      status.textContent = "MP4またはWebM形式の動画を選択してください。";
-      return;
-    }
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
-    videoUrl = URL.createObjectURL(file);
-    video.src = videoUrl;
-    preview.hidden = false;
-    status.textContent = "動画情報を確認しています。アップロードは行われません。";
-  });
-
-  video.addEventListener("loadedmetadata", () => {
-    const { videoWidth, videoHeight } = video;
-    const maxDimension = Math.max(videoWidth, videoHeight);
-    const qualityNote = maxDimension > 1280
-      ? "動画の解像度が通常メンバーの上限（最大720p）を超えています。1080p対応には有効なサブスクとサーバー側の動画変換が必要です。"
-      : `動画情報：${videoWidth}×${videoHeight}。通常メンバーは最大720p / 30fpsです。`;
-    status.textContent = `${qualityNote} フレームレートの確認・変換はサーバー連携後に行います。`;
-  });
-
-  video.addEventListener("error", () => {
-    status.textContent = "この動画をプレビューできません。MP4またはWebM形式をご確認ください。";
-  });
-
-  preview.querySelector(".preview-remove").addEventListener("click", clearVideoPreview);
-  visibilityInputs.forEach((input) => {
-    input.addEventListener("change", () => {
-      recipientsInput.disabled = document.querySelector('input[name="fan-video-visibility"]:checked').value !== "selected";
-    });
-  });
-  window.addEventListener("beforeunload", () => {
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
+  mediaSupportDialog.querySelector("[data-support-modal-close]").addEventListener("click", () => mediaSupportDialog.close());
+  mediaSupportDialog.addEventListener("click", (event) => {
+    if (event.target === mediaSupportDialog) mediaSupportDialog.close();
   });
 }
 
@@ -174,34 +76,6 @@ if (feedFilterButtons.length) {
       });
       applyFeedFilter(filter);
     });
-  });
-}
-
-const avatarInput = document.getElementById("avatar-file");
-if (avatarInput) {
-  const avatarPreview = document.getElementById("avatar-preview");
-  let avatarUrl = "";
-
-  avatarInput.addEventListener("change", () => {
-    const file = avatarInput.files[0];
-    if (!file) return;
-    const status = document.getElementById("avatar-status");
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
-      avatarInput.value = "";
-      if (status) status.textContent = "PNG・JPEG・WebP形式、5MB以下の画像を選択してください。";
-      return;
-    }
-    if (avatarUrl) URL.revokeObjectURL(avatarUrl);
-    avatarUrl = URL.createObjectURL(file);
-    const image = document.createElement("img");
-    image.src = avatarUrl;
-    image.alt = "プロフィール画像のプレビュー";
-    avatarPreview.replaceChildren(image);
-    if (status) status.textContent = "プレビューを表示しています。まだ保存されていません。";
-  });
-
-  window.addEventListener("beforeunload", () => {
-    if (avatarUrl) URL.revokeObjectURL(avatarUrl);
   });
 }
 

@@ -31,7 +31,7 @@
     <section class="fan-community-hero">
       <p class="eyebrow">KODAKO STUDIOS COMMUNITY</p>
       <h1>ファン広場</h1>
-      <p>ファンアート、ファンコメント、ファンビデオをシェアして、みんなで楽しもう。</p>
+      <p>ファンコメントや作品の感想をシェアして、みんなで楽しもう。</p>
       <div class="fan-community-actions">
         <a class="button button-primary" href="#create-post">投稿する <span aria-hidden="true">＋</span></a>
         <button class="button button-google" type="button" data-firebase-login disabled><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button>
@@ -51,7 +51,7 @@
       <div class="fan-feed-column">
         <section class="fan-create-card" id="create-post">
           <div class="fan-create-heading"><span class="fan-avatar" id="community-avatar">K</span><div><b>ファン広場に投稿</b><small id="community-user">Googleログインが必要です</small></div></div>
-          <div class="fan-create-actions"><a href="#fan-comment-composer">テキストを投稿</a><span class="feature-pending">ファンアート・動画投稿は準備中</span></div>
+          <div class="fan-create-actions"><a href="#fan-comment-composer">テキストを投稿</a><a href="#fan-art-composer">ファンアート</a><a href="#fan-video-composer">ファンビデオ</a></div>
         </section>
         <nav class="feed-tabs" aria-label="投稿の種類">
           <button type="button" class="active" data-feed-filter="all" aria-pressed="true">すべて</button>
@@ -62,29 +62,10 @@
         <div class="feed-pending-note ai-detection-note" id="community-feed"><span aria-hidden="true">✦</span><p><b>生成AI判別サポート</b><br>AI生成を利用した作品・動画・コメントには、投稿時に必ず「AI生成」タグを付けてください。自動判別機能は準備中です。現在は投稿者の申告に基づいてタグを表示します。</p></div>
         <p class="community-feed-status feature-pending" id="community-feed-status" role="status" aria-live="polite">投稿を読み込んでいます…</p>
         <div class="community-post-list" id="community-post-list" aria-live="polite"></div>
-        <section class="fan-composer-card" id="fan-art-composer" data-post-type="art">
-          <div class="composer-title"><span class="composer-icon art-icon">✿</span><div><h2>ファンアートを投稿</h2><p>あなたの作品をファン広場でシェアしよう。</p></div></div>
-          <label class="form-label" for="fan-art-file">画像ファイル（PNG・JPEG・WebP、10MB以下）</label>
-          <input id="fan-art-file" type="file" accept="image/png,image/jpeg,image/webp">
-          <div class="fan-art-preview" id="fan-art-preview" hidden><img alt="ファンアートのプレビュー"><button type="button" class="preview-remove" aria-label="画像をプレビューから削除">×</button></div>
-          <span class="feature-pending" id="fan-art-status" role="status" aria-live="polite"></span>
-          <label class="form-label ai-use-field" for="fan-art-ai-use">生成AIの利用（必須）</label>
-          <select class="ai-use-select" id="fan-art-ai-use" required>
-            <option value="" selected disabled>生成AIを利用したか選択してください</option>
-            <option value="no">生成AIを利用していない</option>
-            <option value="yes">生成AIを利用した（AI生成タグを付ける）</option>
-          </select>
-          <span class="ai-tag-preview" id="fan-art-ai-tag" hidden>AI生成</span>
-          <fieldset class="visibility-options">
-            <legend class="form-label">公開範囲</legend>
-            <label><input type="radio" name="fan-art-visibility" value="public" checked> 公開</label>
-            <label><input type="radio" name="fan-art-visibility" value="private"> 非公開（投稿者とサイトオーナーのみ）</label>
-            <label><input type="radio" name="fan-art-visibility" value="selected"> 選択したユーザーのみ</label>
-          </fieldset>
-          <label class="form-label" for="fan-art-recipients">閲覧を許可するユーザー名</label>
-          <input id="fan-art-recipients" type="text" placeholder="ユーザー名を入力（複数の場合はカンマ区切り）">
-          <small class="feature-pending" id="fan-art-recipient-status">選択したユーザーの検索・権限確認はFirebase連携後に有効になります。</small>
-          <p class="feature-pending">投稿にはGoogleログインが必要です。画像の投稿・保存は、Firebaseの認証とアクセスルールを整備後に有効になります。</p>
+        <section class="fan-composer-card" id="fan-art-composer">
+          <div class="composer-title"><span class="composer-icon art-icon">✿</span><div><h2>ファンアートを投稿</h2><p>画像投稿は一時停止中です。</p></div></div>
+          <p class="feature-pending">画像の保存には有料のストレージが必要なため、現在アップロードできません。活動を支援する場合は、支援先をご利用ください。</p>
+          <button class="button button-primary" type="button" data-support-modal-open>画像投稿の代わりに支援する</button>
         </section>
         <section class="fan-composer-card" id="fan-comment-composer" data-post-type="comment">
           <div class="composer-title"><span class="composer-icon comment-icon">♡</span><div><h2>ファン広場に投稿</h2><p>応援メッセージや作品の感想をシェアしよう。</p></div></div>
@@ -103,36 +84,10 @@
             <small class="feature-pending" id="fan-comment-status" role="status" aria-live="polite">コメント投稿にはGoogleログインが必要です。</small>
           </form>
         </section>
-        <section class="fan-composer-card video-composer-card" id="fan-video-composer" data-post-type="video">
-          <div class="composer-title"><span class="composer-icon video-icon">▶</span><div><h2>ファンビデオを投稿</h2><p>ゲームプレイや作品動画をシェアしよう。</p></div></div>
-          <div class="video-quality-info">
-            <div><b>通常メンバー</b><span>最大720p / 30fps</span><small>投稿動画はサーバー側で上限に合わせて変換予定</small></div>
-            <div class="premium-quality"><b>サブスクメンバー</b><span>最大1080p / 60fps</span><small>サブスク決済・動画変換の準備中</small></div>
-          </div>
-          <label class="form-label" for="fan-video-file">動画ファイル（MP4・WebM）</label>
-          <input id="fan-video-file" type="file" accept="video/mp4,video/webm">
-          <label class="form-label ai-use-field" for="fan-video-ai-use">生成AIの利用（必須）</label>
-          <select class="ai-use-select" id="fan-video-ai-use" required>
-            <option value="" selected disabled>生成AIを利用したか選択してください</option>
-            <option value="no">生成AIを利用していない</option>
-            <option value="yes">生成AIを利用した（AI生成タグを付ける）</option>
-          </select>
-          <span class="ai-tag-preview" id="fan-video-ai-tag" hidden>AI生成</span>
-          <div class="video-upload-preview" id="fan-video-preview" hidden>
-            <video controls playsinline preload="metadata"></video>
-            <button type="button" class="preview-remove" aria-label="動画をプレビューから削除">×</button>
-          </div>
-          <span class="feature-pending" id="fan-video-status" role="status" aria-live="polite">アップロードと解像度・フレームレートの変換は、サーバー連携後に有効になります。</span>
-          <fieldset class="visibility-options">
-            <legend class="form-label">公開範囲</legend>
-            <label><input type="radio" name="fan-video-visibility" value="public" checked> 公開</label>
-            <label><input type="radio" name="fan-video-visibility" value="private"> 非公開（投稿者とサイトオーナーのみ）</label>
-            <label><input type="radio" name="fan-video-visibility" value="selected"> 選択したユーザーのみ</label>
-          </fieldset>
-          <label class="form-label" for="fan-video-recipients">閲覧を許可するユーザー名</label>
-          <input id="fan-video-recipients" type="text" placeholder="ユーザー名を入力（複数の場合はカンマ区切り）" disabled>
-          <div class="composer-submit-row"><button class="button button-primary" type="button" disabled>Googleログイン後に動画を投稿</button><button class="button button-light" type="button" disabled>サブスクプランを確認</button></div>
-          <small class="feature-pending">匿名投稿は受け付けません。投稿・公開範囲の制御、サブスク判定、1080p/60fps変換はFirebase・動画処理・Stripe連携後に有効になります。現在は投稿されません。</small>
+        <section class="fan-composer-card video-composer-card" id="fan-video-composer">
+          <div class="composer-title"><span class="composer-icon video-icon">▶</span><div><h2>ファンビデオを投稿</h2><p>動画投稿は一時停止中です。</p></div></div>
+          <p class="feature-pending">動画の保存には有料のストレージが必要なため、現在アップロードできません。活動を支援する場合は、支援先をご利用ください。</p>
+          <button class="button button-primary" type="button" data-support-modal-open>動画投稿の代わりに支援する</button>
         </section>
       </div>
       <aside class="fan-community-aside">
@@ -146,6 +101,17 @@
     <span>© <span id="year"></span> KODAKOSTUDIOS</span>
     <span class="footer-links"><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a></span>
   </footer>
+  <dialog class="media-support-dialog" id="media-support-dialog" aria-labelledby="media-support-title">
+    <button class="lightbox-close" type="button" data-support-modal-close aria-label="閉じる">×</button>
+    <p class="eyebrow">SUPPORT KODAKOSTUDIOS</p>
+    <h2 id="media-support-title">活動を応援する</h2>
+    <p>画像・動画のアップロードは、ストレージ費用のため現在停止しています。支援先を選ぶと、それぞれの公式ページへ移動します。</p>
+    <div class="media-support-links">
+      <a class="button button-primary" href="https://www.amazon.jp/hz/wishlist/ls/L363S1KFPWRE?ref_=wl_share" target="_blank" rel="noopener noreferrer">Amazonで支援 <span aria-hidden="true">↗</span></a>
+      <a class="button button-light" href="https://suzuri.jp/KodakoOfficial" target="_blank" rel="noopener noreferrer">SUZURI公式ショップ <span aria-hidden="true">↗</span></a>
+    </div>
+    <small>PayPay・PayPalなどの投げ銭リンクは、決済アカウント未設定のため現在ご利用いただけません。</small>
+  </dialog>
   <a class="top-button" href="#top" aria-label="ページの先頭へ戻る">TOP <span aria-hidden="true">↑</span></a>
   <script src="script.js"></script>
   <script type="module" src="firebase-auth.js"></script>

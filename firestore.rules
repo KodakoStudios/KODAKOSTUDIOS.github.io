@@ -7,7 +7,7 @@ service cloud.firestore {
 
     function validProfile(data, uid) {
       return data.keys().hasAll(['username', 'displayName', 'bio', 'updatedAt'])
-        && data.keys().hasOnly(['username', 'displayName', 'bio', 'updatedAt'])
+        && data.keys().hasOnly(['username', 'displayName', 'bio', 'avatarId', 'updatedAt'])
         && data.username is string
         && data.username.matches('^[a-z0-9_]{3,24}$')
         && data.displayName is string
@@ -15,6 +15,7 @@ service cloud.firestore {
         && data.displayName.size() <= 40
         && data.bio is string
         && data.bio.size() <= 160
+        && (!('avatarId' in data) || data.avatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower'])
         && data.updatedAt == request.time
         && getAfter(/databases/$(database)/documents/usernames/$(data.username)).data.uid == uid;
     }
@@ -40,6 +41,57 @@ service cloud.firestore {
           && request.auth.uid == uid
           && resource.data.uid == targetUid;
         allow update: if false;
+      }
+
+      match /preferences/{preferenceId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && preferenceId == 'notifications'
+          && request.resource.data.keys().hasAll(['like', 'reply', 'follow', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['like', 'reply', 'follow', 'updatedAt'])
+          && request.resource.data.like is bool
+          && request.resource.data.reply is bool
+          && request.resource.data.follow is bool
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn()
+          && request.auth.uid != uid
+          && request.resource.data.keys().hasAll(['type', 'actorUid', 'actorName', 'content', 'createdAt', 'read'])
+          && request.resource.data.keys().hasOnly(['type', 'actorUid', 'actorName', 'postId', 'replyId', 'content', 'createdAt', 'read'])
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.actorName is string
+          && request.resource.data.actorName.size() > 0
+          && request.resource.data.actorName.size() <= 40
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 120
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.read == false
+          && (
+            (request.resource.data.type == 'follow'
+              && existsAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)/following/$(uid))
+              && getAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)/following/$(uid)).data.uid == uid)
+            || (request.resource.data.type == 'like'
+              && request.resource.data.postId is string
+              && existsAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)/likes/$(request.auth.uid))
+              && get(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.uid == uid)
+            || (request.resource.data.type == 'reply'
+              && request.resource.data.postId is string
+              && request.resource.data.replyId is string
+              && existsAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)/replies/$(request.resource.data.replyId))
+              && getAfter(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)/replies/$(request.resource.data.replyId)).data.uid == request.auth.uid
+              && get(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.uid == uid)
+          );
+        allow update: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt'])
+          && request.resource.data.read == true
+          && request.resource.data.readAt == request.time;
+        allow delete: if false;
       }
 
       match /videoSignals/{videoId} {
@@ -76,18 +128,20 @@ service cloud.firestore {
       allow read: if true;
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['uid', 'authorName', 'content', 'isAiGenerated', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['uid', 'authorName', 'authorUsername', 'content', 'isAiGenerated', 'type', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'authorName', 'authorUsername', 'authorAvatarId', 'authorAvatarUrl', 'content', 'isAiGenerated', 'type', 'createdAt'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.authorName is string
         && request.resource.data.authorName.size() > 0
         && request.resource.data.authorName.size() <= 40
+        && (!('authorAvatarId' in request.resource.data) || request.resource.data.authorAvatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower'])
+        && (!('authorAvatarUrl' in request.resource.data) || (request.resource.data.authorAvatarId == 'google' && request.resource.data.authorAvatarUrl is string && request.resource.data.authorAvatarUrl.size() <= 2048 && request.resource.data.authorAvatarUrl.matches('^https://lh[0-9]+\\.googleusercontent\\.com/.*$')))
         && (!('authorUsername' in request.resource.data) || (request.resource.data.authorUsername is string && request.resource.data.authorUsername.matches('^[a-z0-9_]{3,24}$')))
         && (!('authorUsername' in request.resource.data) || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.username == request.resource.data.authorUsername)
         && request.resource.data.content is string
-        && request.resource.data.content.size() > 0
         && request.resource.data.content.size() <= 500
         && request.resource.data.isAiGenerated is bool
-        && (!('type' in request.resource.data) || request.resource.data.type == 'comment')
+        && request.resource.data.type == 'comment'
+        && request.resource.data.content.size() > 0
         && request.resource.data.createdAt == request.time;
       allow update: if false;
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
@@ -112,11 +166,13 @@ service cloud.firestore {
         allow create: if signedIn()
           && exists(/databases/$(database)/documents/communityPosts/$(postId))
           && request.resource.data.keys().hasAll(['uid', 'authorName', 'content', 'createdAt'])
-          && request.resource.data.keys().hasOnly(['uid', 'authorName', 'content', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['uid', 'authorName', 'authorAvatarId', 'authorAvatarUrl', 'content', 'createdAt'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.authorName is string
           && request.resource.data.authorName.size() > 0
           && request.resource.data.authorName.size() <= 40
+          && (!('authorAvatarId' in request.resource.data) || request.resource.data.authorAvatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower'])
+          && (!('authorAvatarUrl' in request.resource.data) || (request.resource.data.authorAvatarId == 'google' && request.resource.data.authorAvatarUrl is string && request.resource.data.authorAvatarUrl.size() <= 2048 && request.resource.data.authorAvatarUrl.matches('^https://lh[0-9]+\\.googleusercontent\\.com/.*$')))
           && request.resource.data.content is string
           && request.resource.data.content.size() > 0
           && request.resource.data.content.size() <= 500

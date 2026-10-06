@@ -1,7 +1,7 @@
-import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, addDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
-import { db, getDisplayName, getUserProfile } from "./social-data.js";
+import { db, getDisplayName, getProfileAvatarId, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
 
 const postsRef = collection(db, "communityPosts");
 const form = document.getElementById("fan-comment-form");
@@ -17,6 +17,7 @@ const avatar = document.getElementById("community-avatar");
 let currentUser = null;
 let currentDisplayName = "";
 let currentUsername = "";
+let currentAvatarId = "google";
 let followingIds = new Set();
 let activeFilter = "all";
 let submitting = false;
@@ -39,14 +40,55 @@ const firestoreErrorMessage = (error) => {
   return `処理に失敗しました（${error.code || "unknown"}）。時間をおいて再度お試しください。`;
 };
 
+const createAvatar = (avatarId, avatarUrl, fallbackName, className) => {
+  const element = document.createElement("span");
+  element.className = className;
+  element.setAttribute("aria-hidden", "true");
+  if (avatarId === "google" && avatarUrl) {
+    const image = document.createElement("img");
+    image.src = avatarUrl;
+    image.alt = "";
+    image.referrerPolicy = "no-referrer";
+    element.append(image);
+  } else {
+    element.textContent = PROFILE_AVATARS[avatarId] || (fallbackName || "K").trim().charAt(0).toUpperCase() || "K";
+  }
+  return element;
+};
+
+const renderComposerAvatar = () => {
+  const rendered = createAvatar(currentAvatarId, currentUser?.photoURL, currentDisplayName, "fan-avatar");
+  avatar.replaceChildren(...rendered.childNodes);
+};
+
+const createNotification = async (recipientUid, notification) => {
+  try {
+    await addDoc(collection(db, "profiles", recipientUid, "notifications"), {
+      ...notification,
+      actorUid: currentUser.uid,
+      actorName: currentDisplayName || (currentUser.displayName || "Googleユーザー").slice(0, 40),
+      createdAt: serverTimestamp(),
+      read: false,
+    });
+    return true;
+  } catch (error) {
+    console.error("Community notification could not be saved:", error);
+    setPostStatus(`操作は保存されましたが、通知を送れませんでした（${error.code || "unknown"}）。Firestoreルールを公開してください。`, true);
+    return false;
+  }
+};
+
 const createReply = (reply) => {
   const item = document.createElement("div");
   item.className = "community-reply";
+  item.append(createAvatar(reply.authorAvatarId, reply.authorAvatarUrl, reply.authorName, "community-avatar"));
+  const content = document.createElement("div");
   const author = document.createElement("b");
   author.textContent = reply.authorName || "Googleユーザー";
   const text = document.createElement("p");
   text.textContent = reply.content;
-  item.append(author, text);
+  content.append(author, text);
+  item.append(content);
   return item;
 };
 
@@ -54,10 +96,10 @@ const openReplies = (postId, repliesContainer, replyForm) => {
   const existing = replyUnsubscribers.get(postId);
   if (existing) return;
   const repliesRef = collection(db, "communityPosts", postId, "replies");
-  const unsubscribe = onSnapshot(query(repliesRef, orderBy("createdAt", "asc"), limit(50)), (snapshot) => {
+  const unsubscribe = onSnapshot(query(repliesRef, orderBy("createdAt", "desc"), limit(3)), (snapshot) => {
     repliesContainer.replaceChildren();
-    snapshot.forEach((reply) => repliesContainer.append(createReply(reply.data())));
-    replyForm.querySelector("[data-reply-count]").textContent = `${snapshot.size}件のコメント`;
+    [...snapshot.docs].reverse().forEach((reply) => repliesContainer.append(createReply(reply.data())));
+    replyForm.querySelector("[data-reply-count]").textContent = snapshot.size ? `返信（最新${snapshot.size}件）` : "まだ返信はありません";
   }, (error) => {
     replyForm.querySelector("[data-reply-status]").textContent = firestoreErrorMessage(error);
   });
@@ -67,12 +109,14 @@ const openReplies = (postId, repliesContainer, replyForm) => {
 const createPostElement = (postId, post) => {
   const article = document.createElement("article");
   article.className = "community-post-card";
+  article.id = `post-${postId}`;
   article.dataset.postType = post.type === "art" || post.type === "video" ? post.type : "comment";
 
   const heading = document.createElement("div");
   heading.className = "community-post-heading";
   const authorGroup = document.createElement("span");
   authorGroup.className = "community-post-author";
+  authorGroup.append(createAvatar(post.authorAvatarId, post.authorAvatarUrl, post.authorName, "community-post-avatar"));
   const author = document.createElement("strong");
   author.textContent = post.authorName || "Googleユーザー";
   authorGroup.append(author);
@@ -120,6 +164,13 @@ const createPostElement = (postId, post) => {
         await deleteDoc(likeRef);
       } else {
         await setDoc(likeRef, { uid: currentUser.uid, createdAt: serverTimestamp() });
+        if (post.uid !== currentUser.uid) {
+          await createNotification(post.uid, {
+            type: "like",
+            postId,
+            content: "",
+          });
+        }
       }
     } catch (error) {
       setPostStatus(firestoreErrorMessage(error), true);
@@ -143,6 +194,10 @@ const createPostElement = (postId, post) => {
           await deleteDoc(followRef);
         } else {
           await setDoc(followRef, { uid: post.uid, createdAt: serverTimestamp() });
+          await createNotification(post.uid, {
+            type: "follow",
+            content: "",
+          });
         }
       } catch (error) {
         setPostStatus(firestoreErrorMessage(error), true);
@@ -153,13 +208,8 @@ const createPostElement = (postId, post) => {
     actions.append(followButton);
   }
 
-  const replyToggle = document.createElement("button");
-  replyToggle.type = "button";
-  replyToggle.className = "community-reply-toggle";
-  replyToggle.textContent = "コメントする";
   const replyPanel = document.createElement("div");
   replyPanel.className = "community-reply-panel";
-  replyPanel.hidden = true;
   const repliesContainer = document.createElement("div");
   repliesContainer.className = "community-replies";
   const replyForm = document.createElement("form");
@@ -190,12 +240,23 @@ const createPostElement = (postId, post) => {
     replySubmit.disabled = true;
     replyStatus.textContent = "送信しています…";
     try {
-      await addDoc(collection(db, "communityPosts", postId, "replies"), {
+      const replyRef = doc(collection(db, "communityPosts", postId, "replies"));
+      await setDoc(replyRef, {
         uid: currentUser.uid,
         authorName: currentDisplayName,
+        authorAvatarId: currentAvatarId,
+        ...(currentAvatarId === "google" && currentUser.photoURL ? { authorAvatarUrl: currentUser.photoURL } : {}),
         content: reply,
         createdAt: serverTimestamp(),
       });
+      if (post.uid !== currentUser.uid) {
+        await createNotification(post.uid, {
+          type: "reply",
+          postId,
+          replyId: replyRef.id,
+          content: reply.slice(0, 120),
+        });
+      }
       replyInput.value = "";
       replyStatus.textContent = "コメントを送信しました。";
     } catch (error) {
@@ -204,13 +265,9 @@ const createPostElement = (postId, post) => {
       replySubmit.disabled = !currentUser;
     }
   });
-  replyToggle.addEventListener("click", () => {
-    replyPanel.hidden = !replyPanel.hidden;
-    if (!replyPanel.hidden) openReplies(postId, repliesContainer, replyForm);
-  });
-  actions.append(replyToggle);
   replyPanel.append(repliesContainer, replyForm);
   article.append(actions, replyPanel);
+  openReplies(postId, repliesContainer, replyForm);
 
   const likesRef = collection(db, "communityPosts", postId, "likes");
   const unsubscribe = onSnapshot(likesRef, (snapshot) => {
@@ -270,8 +327,9 @@ onAuthStateChanged(auth, async (user) => {
       const [name, profile] = await Promise.all([getDisplayName(user), getUserProfile(user.uid)]);
       currentDisplayName = name;
       currentUsername = profile?.username || "";
+      currentAvatarId = getProfileAvatarId(profile);
       userLabel.textContent = `${name} としてログイン中`;
-      avatar.textContent = name.trim().charAt(0).toUpperCase() || "K";
+      renderComposerAvatar();
       if (followUnsubscribe) followUnsubscribe();
       followUnsubscribe = onSnapshot(collection(db, "profiles", user.uid, "following"), (snapshot) => {
         followingIds = new Set(snapshot.docs.map((item) => item.id));
@@ -284,11 +342,12 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     currentDisplayName = "";
     currentUsername = "";
+    currentAvatarId = "google";
     followingIds = new Set();
     if (followUnsubscribe) followUnsubscribe();
     followUnsubscribe = null;
     userLabel.textContent = "Googleログインが必要です";
-    avatar.textContent = "K";
+    renderComposerAvatar();
     setPostStatus("投稿・コメント・いいね・フォローにはGoogleログインが必要です。");
   }
   if (postSnapshot) renderPosts();
@@ -296,7 +355,7 @@ onAuthStateChanged(auth, async (user) => {
   setPostStatus(`認証状態を確認できませんでした（${error.code || "unknown"}）。`, true);
 });
 
-postUnsubscribe = onSnapshot(query(postsRef, orderBy("createdAt", "desc"), limit(50)), (snapshot) => {
+postUnsubscribe = onSnapshot(query(postsRef, orderBy("createdAt", "desc"), limit(30)), (snapshot) => {
   postSnapshot = snapshot;
   renderPosts();
 }, (error) => {
@@ -324,6 +383,8 @@ form.addEventListener("submit", async (event) => {
     await addDoc(postsRef, {
       uid: currentUser.uid,
       authorName: currentDisplayName || (currentUser.displayName || "Googleユーザー").slice(0, 40),
+      authorAvatarId: currentAvatarId,
+      ...(currentAvatarId === "google" && currentUser.photoURL ? { authorAvatarUrl: currentUser.photoURL } : {}),
       ...(currentUsername ? { authorUsername: currentUsername } : {}),
       content,
       isAiGenerated: aiUseInput.value === "yes",
@@ -332,7 +393,7 @@ form.addEventListener("submit", async (event) => {
     });
     form.reset();
     document.getElementById("fan-comment-ai-tag").hidden = true;
-    setPostStatus("投稿しました。");
+    setPostStatus("投稿を保存しました。プロフィールの投稿履歴にも反映されます。");
   } catch (error) {
     setPostStatus(firestoreErrorMessage(error), true);
   } finally {

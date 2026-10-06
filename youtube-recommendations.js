@@ -5,6 +5,8 @@ import { db } from "./social-data.js";
 
 const grid = document.getElementById("recommendation-grid");
 const status = document.getElementById("recommendation-status");
+const favoriteGrid = document.getElementById("favorite-video-grid");
+const favoriteStatus = document.getElementById("favorite-video-status");
 const intro = document.getElementById("recommendation-intro");
 const signals = new Map();
 let videos = [];
@@ -61,8 +63,69 @@ const setSignal = async (video, changes) => {
   await setDoc(signalRef, next, { merge: true });
 };
 
+const createFavoriteCard = (video) => {
+  const card = document.createElement("article");
+  card.className = "favorite-video-card";
+  const link = document.createElement("a");
+  link.href = `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.setAttribute("aria-label", `YouTubeで「${video.title}」を見る`);
+  const thumbnail = video.thumbnail || `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
+  link.style.backgroundImage = `url("${thumbnail.replaceAll('"', "%22")}")`;
+  link.textContent = "▶ YouTubeで見る";
+  const title = document.createElement("h4");
+  title.textContent = video.title;
+  const button = document.createElement("button");
+  const signal = signals.get(video.id);
+  button.type = "button";
+  button.className = "community-like-button";
+  button.disabled = !currentUser;
+  button.textContent = signal?.liked ? "♥ お気に入り" : "♡ お気に入りに追加";
+  button.setAttribute("aria-pressed", String(Boolean(signal?.liked)));
+  button.addEventListener("click", async () => {
+    if (!currentUser) return;
+    button.disabled = true;
+    try {
+      await setSignal(video, { liked: !signals.get(video.id)?.liked });
+    } catch (error) {
+      favoriteStatus.textContent = error.code === "permission-denied"
+        ? "お気に入りを保存できません。Firebase Consoleへ最新のFirestoreルールを公開してください。"
+        : `お気に入りを保存できませんでした（${error.code || "unknown"}）。`;
+      favoriteStatus.dataset.state = "error";
+    } finally {
+      button.disabled = !currentUser;
+    }
+  });
+  card.append(link, title, button);
+  return card;
+};
+
+const renderFavoritePicker = () => {
+  favoriteGrid.replaceChildren();
+  const currentVideos = videos.filter((video) => !video.isLive).slice(0, 12);
+  const knownIds = new Set(currentVideos.map((video) => video.id));
+  const selectedVideos = [...signals.values()]
+    .filter((signal) => signal.liked && !knownIds.has(signal.videoId))
+    .map((signal) => ({
+      id: signal.videoId,
+      title: signal.title,
+      thumbnail: `https://i.ytimg.com/vi/${encodeURIComponent(signal.videoId)}/mqdefault.jpg`,
+    }));
+  const choices = [...selectedVideos, ...currentVideos];
+  if (!choices.length) {
+    favoriteStatus.textContent = "お気に入りに選べる動画がありません。しばらくしてから再読み込みしてください。";
+    return;
+  }
+  favoriteGrid.append(...choices.map(createFavoriteCard));
+  favoriteStatus.textContent = currentUser
+    ? `最近の動画${currentVideos.length}件から選べます。選択済みのお気に入り${[...signals.values()].filter((signal) => signal.liked).length}件も表示しています。`
+    : "動画は閲覧できます。Googleログインするとお気に入りを保存できます。";
+};
+
 const render = () => {
   grid.replaceChildren();
+  renderFavoritePicker();
   if (!videos.length) {
     status.textContent = "おすすめ動画を読み込めませんでした。時間をおいて再度お試しください。";
     status.dataset.state = "error";
@@ -158,8 +221,8 @@ onAuthStateChanged(auth, (user) => {
   signalsUnsubscribe = null;
   signals.clear();
   intro.textContent = user
-    ? "サイト内で動画を見たり「お気に入り」を付けたりすると、好みに近いおすすめが表示されます。"
-    : "Googleログイン後、サイト内で見た動画や「お気に入り」をもとにおすすめを表示します。";
+    ? "最新動画からお気に入りを選ぶと、選んだ動画に近いおすすめが表示されます。"
+    : "Googleログイン後、最新動画からお気に入りを選んでおすすめに反映できます。";
   if (user) {
     const signalsRef = collection(db, "profiles", user.uid, "videoSignals");
     signalsUnsubscribe = onSnapshot(signalsRef, (snapshot) => {

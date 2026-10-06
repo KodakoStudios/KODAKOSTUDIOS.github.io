@@ -29,7 +29,7 @@
     </nav>
   </header>
   <main class="settings-main">
-    <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>プロフィールを設定してファン広場に参加できます。Developer Modeのテスト状態だけは、このブラウザー内に保存されます。</p></div>
+    <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>プロフィールの編集や、自分の投稿・返信履歴を確認できます。</p></div>
     <div class="settings-login">
       <span class="google-g" aria-hidden="true">G</span>
       <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">Firebaseに接続しています…</small></div>
@@ -39,15 +39,29 @@
       <div class="settings-card-heading"><div><p class="eyebrow">PROFILE</p><h2>プロフィール</h2></div><span class="api-badge" id="profile-save-state"><i></i> ログインが必要です</span></div>
       <div class="avatar-setting">
         <div class="avatar-preview" id="avatar-preview" aria-label="プロフィール画像プレビュー">K</div>
-        <small>Googleアカウントのプロフィール画像を表示します。独自画像のアップロードは現在利用できません。</small>
+        <small>アイコンは無料枠のFirestoreに設定IDのみ保存します。画像のアップロードやStorageは使いません。</small>
       </div>
-      <span class="feature-pending" id="avatar-status" role="status" aria-live="polite"></span>
+      <fieldset class="avatar-choices" aria-label="プロフィールアイコン">
+        <legend>プロフィールアイコン</legend>
+        <label><input type="radio" name="profile-avatar" value="google" checked disabled><span class="avatar-choice-google">G</span><span>Google画像</span></label>
+        <label><input type="radio" name="profile-avatar" value="octopus" disabled><span>🐙</span><span>たこ</span></label>
+        <label><input type="radio" name="profile-avatar" value="star" disabled><span>⭐</span><span>星</span></label>
+        <label><input type="radio" name="profile-avatar" value="cat" disabled><span>🐱</span><span>ねこ</span></label>
+        <label><input type="radio" name="profile-avatar" value="rabbit" disabled><span>🐰</span><span>うさぎ</span></label>
+        <label><input type="radio" name="profile-avatar" value="bear" disabled><span>🐻</span><span>くま</span></label>
+        <label><input type="radio" name="profile-avatar" value="flower" disabled><span>🌸</span><span>花</span></label>
+      </fieldset>
       <label class="settings-field"><span>ユーザー名</span><input id="profile-username" type="text" maxlength="24" placeholder="英数字と _ を使用（3〜24文字）" pattern="[A-Za-z0-9_]{3,24}" required disabled></label>
       <label class="settings-field"><span>表示名</span><input id="profile-display-name" type="text" maxlength="40" placeholder="投稿に表示する名前" required disabled></label>
       <label class="settings-field"><span>自己紹介</span><textarea id="profile-bio" rows="3" maxlength="160" placeholder="プロフィールに表示する自己紹介（160文字以内）" disabled></textarea></label>
       <small id="profile-status" class="feature-pending" role="status" aria-live="polite">Googleログインするとプロフィールを保存できます。</small>
       <button class="button button-primary" id="profile-save-button" type="submit" disabled>プロフィールを保存</button>
     </form>
+    <section class="settings-card" aria-labelledby="my-posts-heading">
+      <div class="settings-card-heading"><div><p class="eyebrow">YOUR ACTIVITY</p><h2 id="my-posts-heading">自分の投稿・返信履歴</h2></div></div>
+      <small id="profile-posts-status" class="feature-pending" role="status" aria-live="polite">Googleログインすると投稿履歴を表示します。</small>
+      <div class="profile-post-history" id="profile-post-history"></div>
+    </section>
     <section class="settings-card x-account-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SOCIAL CONNECTION</p><h2>Xアカウント連携</h2></div><span class="api-badge"><i></i> OAuth準備中</span></div>
       <div class="x-account-row">
@@ -58,12 +72,14 @@
       <label class="toggle-setting"><span><b>プロフィールにXアカウントを表示</b><small>連携後に表示設定を選べます</small></span><input type="checkbox" disabled><i aria-hidden="true"></i></label>
       <small class="feature-pending">X OAuthの接続先と権限確認を設定するまで、連携は実行できません。</small>
     </section>
-    <section class="settings-card">
-      <div class="settings-card-heading"><div><p class="eyebrow">NOTIFICATIONS</p><h2>通知設定</h2></div><span class="api-badge"><i></i> 保存準備中</span></div>
-      <label class="toggle-setting"><span><b>自分の投稿への♡</b><small>ファンアートやコメントに「いいね」が付いたとき</small></span><input type="checkbox" disabled><i aria-hidden="true"></i></label>
-      <label class="toggle-setting"><span><b>自分の投稿への返信</b><small>ファンアートやコメントに返信があったとき</small></span><input type="checkbox" disabled><i aria-hidden="true"></i></label>
-      <label class="toggle-setting"><span><b>フォロー</b><small>他のユーザーからフォローされたとき</small></span><input type="checkbox" disabled><i aria-hidden="true"></i></label>
-      <p class="feature-pending">通知の保存・配信はFirebase連携後に有効になります。</p>
+    <section class="settings-card" id="notification-settings">
+      <div class="settings-card-heading"><div><p class="eyebrow">NOTIFICATIONS</p><h2>通知</h2></div><span class="api-badge"><i></i> サイト内通知</span></div>
+      <p class="feature-pending">いいね・返信・フォローをこのページで確認できます。メールやプッシュ通知ではありません。</p>
+      <label class="toggle-setting"><span><b>自分の投稿への♡</b><small>投稿に「いいね」が付いたとき</small></span><input type="checkbox" id="notify-likes" checked disabled><i aria-hidden="true"></i></label>
+      <label class="toggle-setting"><span><b>自分の投稿への返信</b><small>投稿に返信があったとき</small></span><input type="checkbox" id="notify-replies" checked disabled><i aria-hidden="true"></i></label>
+      <label class="toggle-setting"><span><b>フォロー</b><small>他のユーザーからフォローされたとき</small></span><input type="checkbox" id="notify-follows" checked disabled><i aria-hidden="true"></i></label>
+      <small class="feature-pending" id="notification-settings-status" role="status" aria-live="polite">Googleログインすると通知を確認できます。</small>
+      <div class="notification-list" id="notification-list" aria-live="polite"></div>
     </section>
     <section class="settings-card subscription-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SUBSCRIPTION</p><h2>サブスクリプション</h2></div><span class="api-badge"><i></i> 決済連携準備中</span></div>
@@ -75,47 +91,9 @@
       <small class="feature-pending">支援ページの月額500円プランは、Stripe連携後に自動更新・解約手続きが可能になります。</small>
       <a class="text-link" href="index.html#support">支援・サブスクについて見る →</a>
     </section>
-    <section class="settings-card developer-mode-card" aria-labelledby="developer-mode-heading">
-      <div class="settings-card-heading"><div><p class="eyebrow">LOCAL SCREEN TEST</p><h2 id="developer-mode-heading">Developer Mode</h2></div><span class="api-badge"><i></i> 無料・このブラウザーのみ</span></div>
-      <p class="developer-mode-warning"><b>画面テスト専用です。</b>テスト状態と支援記録はこのブラウザーにだけ保存され、実際の契約・決済・入金、他のユーザーの表示や権限には一切影響しません。誰でもこの画面を操作できます。管理者認証やサーバー保存は行いません。</p>
-      <button class="button button-light" id="developer-mode-toggle" type="button" aria-expanded="false" aria-controls="developer-mode-panel">画面テストを開く</button>
-      <p class="feature-pending developer-mode-feedback" id="developer-mode-feedback" role="status" aria-live="polite" hidden></p>
-      <div id="developer-mode-panel" hidden>
-      <section class="developer-control">
-        <h3>サブスクリプション表示テスト</h3>
-        <p id="developer-test-subscription-status" role="status">テスト状態を確認中</p>
-        <label class="settings-field" for="developer-subscription-state"><span>テスト状態</span>
-          <select id="developer-subscription-state">
-            <option value="inactive">未加入</option>
-            <option value="active">加入中</option>
-          </select>
-        </label>
-        <button class="button button-light" id="developer-subscription-save" type="button">テスト状態を保存</button>
-      </section>
-      <form class="developer-control" id="developer-donation-form">
-        <h3>支援フローのテスト記録</h3>
-        <label class="settings-field" for="developer-donation-amount"><span>テスト金額</span>
-          <select id="developer-donation-amount" name="amount">
-            <option value="1000">1,000円</option>
-            <option value="3000">3,000円</option>
-            <option value="5000">5,000円</option>
-            <option value="10000">10,000円</option>
-          </select>
-        </label>
-        <label class="settings-field" for="developer-donation-comment"><span>テストコメント（任意）</span>
-          <textarea id="developer-donation-comment" name="comment" rows="2" maxlength="300" placeholder="テスト用コメント（300文字以内）"></textarea>
-        </label>
-        <button class="button button-primary" type="submit">決済せずテスト記録を作成</button>
-        <p id="developer-test-donation-total" class="feature-pending">テスト記録はありません。</p>
-        <ul class="developer-test-donations" id="developer-test-donations"></ul>
-        <button class="button button-light" id="developer-test-donation-clear" type="button">このブラウザーのテスト記録を削除</button>
-      </form>
-      <small class="feature-pending">AIタグ設定も画面上の切替だけを試す機能です。ファン広場の表示は変更されません。</small>
-      </div>
-    </section>
     <section class="settings-card ai-filter-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">CONTENT FILTER</p><h2>AIタグ投稿の表示</h2></div><span class="api-badge"><i></i> サブスク限定</span></div>
-      <label class="toggle-setting"><span><b>AIタグの付いた投稿を非表示</b><small>通常機能は未接続です。Developer Modeでは画面上の切替のみ試せます。</small></span><input type="checkbox" id="ai-filter-toggle" disabled aria-describedby="ai-filter-status"><i aria-hidden="true"></i></label>
+      <label class="toggle-setting"><span><b>AIタグの付いた投稿を非表示</b><small>サブスクリプション機能の準備中です。</small></span><input type="checkbox" id="ai-filter-toggle" disabled aria-describedby="ai-filter-status"><i aria-hidden="true"></i></label>
       <small class="feature-pending" id="ai-filter-status">実際のサブスクリプション照合や投稿の絞り込みは行いません。</small>
     </section>
   </main>
@@ -128,6 +106,6 @@
   <script src="script.js"></script>
   <script type="module" src="firebase-auth.js"></script>
   <script type="module" src="settings-profile.js"></script>
-  <script src="developer-mode.js"></script>
+  <script type="module" src="settings-notifications.js"></script>
 </body>
 </html>
