@@ -139,7 +139,7 @@
       </div>
       <div class="fan-hub-teaser">
         <div class="fan-hub-bubbles" aria-hidden="true"><span>♡</span><span>✦</span><span>☺</span></div>
-        <div><h3>作品やコメントをシェアしよう</h3><p>ファンアート、ファンコメント、ファンビデオを楽しめるKODAKO STUDIOSのファン広場です。</p></div>
+        <div><h3>投稿やコメントをシェアしよう</h3><p>テキスト投稿・コメント・いいね・フォローで交流できるKODAKO STUDIOSのファン広場です。</p></div>
         <a class="button button-primary" href="fan-community.html">ファン広場へ <span aria-hidden="true">→</span></a>
       </div>
     </section>
@@ -162,8 +162,10 @@
     </section>
 
     <section class="recommend-section section-wrap">
-      <div class="recommend-copy"><p class="eyebrow">MADE FOR YOU</p><h2>あなたへのおすすめ</h2><p>Googleアカウントでログインして、おすすめコンテンツを受け取れる機能を準備しています。おすすめの保存・表示は今後対応します。</p></div>
+      <div class="recommend-copy"><p class="eyebrow">MADE FOR YOU</p><h2>あなたへのおすすめ</h2><p id="recommendation-intro">ログイン後、サイト内で見たり「いいね」した動画をもとに、おすすめを表示します。</p></div>
       <div class="recommend-action"><button class="button button-google" type="button" data-firebase-login disabled aria-describedby="google-login-note"><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button><small id="google-login-note" data-auth-status role="status" aria-live="polite">Firebaseに接続しています…</small></div>
+      <p class="recommendation-status" id="recommendation-status" role="status" aria-live="polite">おすすめ動画を準備しています…</p>
+      <div class="recommendation-grid" id="recommendation-grid"></div>
     </section>
 
     <section id="support" class="support-section section-wrap">
@@ -221,5 +223,6 @@
   <script src="youtube-config.js"></script>
   <script src="youtube-api.js"></script>
   <script type="module" src="firebase-auth.js"></script>
+  <script type="module" src="youtube-recommendations.js"></script>
 </body>
 </html>

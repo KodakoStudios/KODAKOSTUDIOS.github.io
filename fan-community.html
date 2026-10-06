@@ -51,7 +51,7 @@
       <div class="fan-feed-column">
         <section class="fan-create-card" id="create-post">
           <div class="fan-create-heading"><span class="fan-avatar" id="community-avatar">K</span><div><b>ファン広場に投稿</b><small id="community-user">Googleログインが必要です</small></div></div>
-          <div class="fan-create-actions"><a href="#fan-art-composer">ファンアート</a><a href="#fan-comment-composer">ファンコメント</a><a href="#fan-video-composer">ファンビデオ</a></div>
+          <div class="fan-create-actions"><a href="#fan-comment-composer">テキストを投稿</a><span class="feature-pending">ファンアート・動画投稿は準備中</span></div>
         </section>
         <nav class="feed-tabs" aria-label="投稿の種類">
           <button type="button" class="active" data-feed-filter="all" aria-pressed="true">すべて</button>
@@ -87,11 +87,11 @@
           <p class="feature-pending">投稿にはGoogleログインが必要です。画像の投稿・保存は、Firebaseの認証とアクセスルールを整備後に有効になります。</p>
         </section>
         <section class="fan-composer-card" id="fan-comment-composer" data-post-type="comment">
-          <div class="composer-title"><span class="composer-icon comment-icon">♡</span><div><h2>ファンコメントを投稿</h2><p>作品の感想や応援メッセージを送ろう。</p></div></div>
+          <div class="composer-title"><span class="composer-icon comment-icon">♡</span><div><h2>ファン広場に投稿</h2><p>応援メッセージや作品の感想をシェアしよう。</p></div></div>
           <p class="feature-pending">投稿者名には、ログイン中のGoogleアカウントのプロフィール名が表示されます。</p>
           <form id="fan-comment-form">
-            <label class="form-label" for="fan-comment-text">コメント（500文字以内）</label>
-            <textarea id="fan-comment-text" rows="4" maxlength="500" placeholder="やさしい言葉でコメントを書いてください" required disabled></textarea>
+            <label class="form-label" for="fan-comment-text">投稿内容（500文字以内）</label>
+            <textarea id="fan-comment-text" rows="4" maxlength="500" placeholder="みんなが楽しくなるメッセージを書いてください" required disabled></textarea>
             <label class="form-label ai-use-field" for="fan-comment-ai-use">生成AIの利用（必須）</label>
             <select class="ai-use-select" id="fan-comment-ai-use" required disabled>
               <option value="" selected disabled>生成AIを利用したか選択してください</option>

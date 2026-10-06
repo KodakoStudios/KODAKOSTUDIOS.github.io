@@ -43,7 +43,7 @@
       Number(match[3] || 0);
   };
 
-  const getLatestVideos = async () => {
+  const loadLatestVideos = async () => {
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
@@ -114,6 +114,12 @@
     sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), videos }));
     return { videos, cached: false };
   };
+  let latestVideosPromise;
+  const getLatestVideos = () => {
+    if (!latestVideosPromise) latestVideosPromise = loadLatestVideos();
+    return latestVideosPromise;
+  };
+  window.KODAKO_YOUTUBE = { getLatestVideos };
 
   const renderVideo = (kind, video) => {
     const card = cards.find((item) => item.dataset.youtubeKind === kind);

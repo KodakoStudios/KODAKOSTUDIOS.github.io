@@ -29,25 +29,24 @@
     </nav>
   </header>
   <main class="settings-main">
-    <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>Googleアカウントでログインできます。プロフィールなどの保存機能は未接続です。Developer Modeのテスト状態だけは、このブラウザー内に保存されます。</p></div>
+    <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>プロフィールを設定してファン広場に参加できます。Developer Modeのテスト状態だけは、このブラウザー内に保存されます。</p></div>
     <div class="settings-login">
       <span class="google-g" aria-hidden="true">G</span>
       <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">Firebaseに接続しています…</small></div>
       <button class="button button-google" type="button" data-firebase-login disabled><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button>
     </div>
     <form class="settings-card" id="profile-settings-form">
-      <div class="settings-card-heading"><div><p class="eyebrow">PROFILE</p><h2>プロフィール</h2></div><span class="api-badge"><i></i> 保存準備中</span></div>
+      <div class="settings-card-heading"><div><p class="eyebrow">PROFILE</p><h2>プロフィール</h2></div><span class="api-badge" id="profile-save-state"><i></i> ログインが必要です</span></div>
       <div class="avatar-setting">
         <div class="avatar-preview" id="avatar-preview" aria-label="プロフィール画像プレビュー">K</div>
-        <label class="button button-light avatar-upload" for="avatar-file">アイコン画像を選ぶ</label>
-        <input class="visually-hidden" id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp">
-        <small>PNG・JPEG・WebP、5MB以下</small>
+        <small>Googleアカウントのプロフィール画像を表示します。独自画像のアップロードは現在利用できません。</small>
       </div>
       <span class="feature-pending" id="avatar-status" role="status" aria-live="polite"></span>
-      <label class="settings-field"><span>ユーザー名</span><input type="text" maxlength="24" placeholder="英数字と _ を使用（3〜24文字）" pattern="[A-Za-z0-9_]{3,24}"></label>
-      <label class="settings-field"><span>表示名</span><input type="text" maxlength="40" placeholder="投稿に表示する名前"></label>
-      <label class="settings-field"><span>自己紹介</span><textarea rows="3" maxlength="160" placeholder="プロフィールに表示する自己紹介（160文字以内）"></textarea></label>
-      <button class="button button-primary" type="submit" disabled>プロフィールを保存</button>
+      <label class="settings-field"><span>ユーザー名</span><input id="profile-username" type="text" maxlength="24" placeholder="英数字と _ を使用（3〜24文字）" pattern="[A-Za-z0-9_]{3,24}" required disabled></label>
+      <label class="settings-field"><span>表示名</span><input id="profile-display-name" type="text" maxlength="40" placeholder="投稿に表示する名前" required disabled></label>
+      <label class="settings-field"><span>自己紹介</span><textarea id="profile-bio" rows="3" maxlength="160" placeholder="プロフィールに表示する自己紹介（160文字以内）" disabled></textarea></label>
+      <small id="profile-status" class="feature-pending" role="status" aria-live="polite">Googleログインするとプロフィールを保存できます。</small>
+      <button class="button button-primary" id="profile-save-button" type="submit" disabled>プロフィールを保存</button>
     </form>
     <section class="settings-card x-account-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SOCIAL CONNECTION</p><h2>Xアカウント連携</h2></div><span class="api-badge"><i></i> OAuth準備中</span></div>
@@ -128,6 +127,7 @@
   <a class="top-button" href="#top" aria-label="ページの先頭へ戻る">TOP <span aria-hidden="true">↑</span></a>
   <script src="script.js"></script>
   <script type="module" src="firebase-auth.js"></script>
+  <script type="module" src="settings-profile.js"></script>
   <script src="developer-mode.js"></script>
 </body>
 </html>
