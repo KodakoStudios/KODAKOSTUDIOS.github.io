@@ -33,6 +33,7 @@ let pendingCustomAvatarDataUrl = "";
 const postsStatus = document.getElementById("profile-posts-status");
 const postsHistory = document.getElementById("profile-post-history");
 const debugPanel = document.getElementById("debug-panel");
+const debugEntry = document.getElementById("debug-entry");
 const debugUidCheck = document.getElementById("debug-uid-check");
 const debugPostHistory = document.getElementById("debug-post-history");
 const debugReplyHistory = document.getElementById("debug-reply-history");
@@ -41,6 +42,7 @@ const debugHistoryError = document.getElementById("debug-history-error");
 const updateDebugIdentity = (user) => {
   const allowed = Boolean(user && user.uid === DEBUG_OWNER_UID);
   debugPanel.hidden = !allowed;
+  debugEntry.hidden = !allowed;
   if (!allowed) return;
   debugUidCheck.textContent = `ログインUID: ${user.uid}（許可UIDと一致）`;
 };

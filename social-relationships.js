@@ -45,6 +45,7 @@ const makeButton = (label, action, disabled = false) => {
     button.disabled = true;
     try {
       await action();
+      renderLists();
       setStatus("関係設定を更新しました。");
     } catch (error) {
       const messages = {
@@ -69,9 +70,14 @@ const renderRelationshipList = async (list, ids, kind) => {
     name.textContent = profile?.displayName || "ユーザー";
     const username = document.createElement("small");
     username.textContent = profile?.username ? `@${profile.username}` : "";
+    const profileLink = document.createElement("a");
+    profileLink.href = `profile.html?${profile?.username ? `username=${encodeURIComponent(profile.username)}` : `uid=${encodeURIComponent(uid)}`}`;
+    profileLink.className = "relationship-profile-link";
+    profileLink.setAttribute("aria-label", `${profile?.displayName || "ユーザー"}のプロフィールを見る`);
+    profileLink.append(name, username);
     const identity = document.createElement("span");
     identity.className = "relationship-identity";
-    identity.append(name, username);
+    identity.append(profileLink);
     row.append(identity);
 
     if (kind === "blocked") {

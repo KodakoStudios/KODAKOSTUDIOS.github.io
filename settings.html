@@ -32,7 +32,7 @@
     <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>プロフィールの編集や、自分の投稿・返信履歴を確認できます。</p></div>
     <div class="settings-login">
       <span class="google-g" aria-hidden="true">G</span>
-      <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">接続を確認しています…</small></div>
+      <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">接続を確認しています…</small><a id="debug-entry" href="#debug-panel" hidden>開発者デバッグを開く</a></div>
       <button class="button button-google" type="button" data-firebase-login disabled><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button>
     </div>
     <form class="settings-card" id="profile-settings-form">
@@ -101,6 +101,7 @@
       <p id="debug-uid-check"></p>
       <p id="debug-post-history"></p>
       <p id="debug-reply-history"></p>
+      <p id="debug-relationship-status"></p>
       <pre id="debug-history-error" hidden></pre>
       <small>この画面は表示確認用です。権限やセキュリティの保護機能ではありません。</small>
     </section>

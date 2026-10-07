@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ファン広場の公開プロフィール">
+  <title>プロフィール | KODAKOSTUDIOS</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="settings-page">
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="KODAKOSTUDIOS ホーム"><img src="assets/logo.png" alt="KODAKO STUDIOS"></a>
+    <nav class="top-nav" aria-label="メインメニュー">
+      <a href="fan-community.html">ファン広場</a>
+      <a href="settings.html">プロフィール・設定</a>
+    </nav>
+    <button class="menu-toggle" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="site-menu"><span></span><span></span><span></span></button>
+    <nav class="menu-panel" id="site-menu" aria-label="サイトメニュー" hidden>
+      <a href="index.html">ホーム</a>
+      <a href="fan-community.html">ファン広場</a>
+      <a href="settings.html">プロフィール・設定</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+  </header>
+  <main class="settings-main">
+    <div class="settings-title"><p class="eyebrow">COMMUNITY PROFILE</p><h1>プロフィール</h1><p>ファン広場の公開プロフィールです。</p></div>
+    <section class="settings-card public-profile-card" aria-labelledby="public-profile-name">
+      <div class="public-profile-heading">
+        <div class="avatar-preview public-profile-avatar" id="public-profile-avatar" aria-hidden="true">K</div>
+        <div><h2 id="public-profile-name">プロフィールを読み込んでいます…</h2><p id="public-profile-username"></p></div>
+      </div>
+      <p id="public-profile-bio" class="public-profile-bio"></p>
+      <div class="public-profile-stats"><span id="public-following-count">フォロー中: —</span><span id="public-followers-count">フォロワー: —</span></div>
+      <div class="public-profile-actions">
+        <a class="button button-secondary" id="public-profile-login" href="settings.html" hidden>ログインしてフォロー</a>
+        <button class="button button-primary" id="public-follow-button" type="button" hidden>フォロー</button>
+        <button class="button button-secondary" id="public-block-button" type="button" hidden>ブロック</button>
+      </div>
+      <small id="public-profile-status" class="feature-pending" role="status" aria-live="polite"></small>
+    </section>
+    <section class="settings-card" aria-labelledby="public-posts-heading">
+      <div class="settings-card-heading"><div><p class="eyebrow">PUBLIC POSTS</p><h2 id="public-posts-heading">投稿</h2></div></div>
+      <small id="public-posts-status" class="feature-pending" role="status" aria-live="polite">ログインすると投稿を表示します。</small>
+      <div class="profile-post-history" id="public-post-history"></div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <a href="index.html"><img src="assets/logo.png" alt="KODAKO STUDIOS"></a>
+    <span>© 2026 KODAKOSTUDIOS</span>
+    <div><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a></div>
+  </footer>
+  <script src="script.js"></script>
+  <script type="module" src="firebase-auth.js"></script>
+  <script type="module" src="profile.js"></script>
+</body>
+</html>

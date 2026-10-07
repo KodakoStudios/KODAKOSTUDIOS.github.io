@@ -373,6 +373,8 @@ a{color:inherit}
 .community-post-heading time{color:var(--muted);font-size:10px}
 .community-post-content{margin:12px 0 0;color:var(--ink);font-size:13px;overflow-wrap:anywhere;white-space:pre-wrap}
 .community-post-author{display:flex;align-items:center;gap:8px}
+.community-post-author strong a{color:inherit;text-decoration:none}
+.community-post-author strong a:hover{color:var(--blue);text-decoration:underline}
 .community-post-author small{color:var(--muted);font-size:10px}
 .community-post-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .community-post-actions button,.community-like-button{min-height:32px;padding:5px 11px;border:1px solid #e1e4ec;border-radius:18px;background:#fff;color:#505463;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
@@ -384,11 +386,23 @@ a{color:inherit}
 .relationship-list{display:grid;gap:7px;margin-top:10px}
 .relationship-row{display:flex;align-items:center;gap:7px;padding:9px 10px;border:1px solid #edf0f5;border-radius:9px}
 .relationship-identity{display:grid;flex:1;min-width:0}
+.relationship-profile-link{display:grid;min-width:0;color:inherit;text-decoration:none}
+.relationship-profile-link:hover>span:first-child{color:var(--blue);text-decoration:underline}
 .relationship-identity>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700}
 .relationship-identity>small,.relationship-empty{color:var(--muted);font-size:10px}
 .relationship-action{padding:6px 9px;border:1px solid var(--line);border-radius:16px;background:#fff;color:#4e5362;font:inherit;font-size:9px;font-weight:700;cursor:pointer}
 .relationship-action:disabled{cursor:not-allowed;opacity:.5}
 .relationship-action:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+.public-profile-heading{display:flex;align-items:center;gap:16px}
+.public-profile-heading h2{margin:0;font-size:22px}
+.public-profile-heading p{margin:5px 0 0;color:var(--muted);font-size:11px}
+.public-profile-avatar{flex:none;width:80px;height:80px;font-size:32px}
+.public-profile-avatar img{width:100%;height:100%;object-fit:cover}
+.public-profile-bio{margin:18px 0;color:#4e5362;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.public-profile-stats,.public-profile-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.public-profile-stats{color:var(--muted);font-size:11px}
+.public-profile-actions .button{min-height:38px;padding:0 16px;font-size:11px}
+.public-profile-actions .button[hidden],.public-profile-actions a[hidden]{display:none}
 .community-post-actions .is-liked,.community-like-button[aria-pressed="true"]{border-color:#ffd7e4;background:#fff1f6;color:#c83f77}
 .community-reply-panel{margin-top:12px;padding:12px 0 0;border-top:1px solid #edf0f5}
 .community-reply-panel[hidden]{display:none}

@@ -113,7 +113,11 @@ const createReply = (reply) => {
   item.append(replyAvatar);
   const content = document.createElement("div");
   const author = document.createElement("b");
-  author.textContent = reply.authorName || "Googleユーザー";
+  const authorLink = document.createElement("a");
+  authorLink.href = `profile.html?${reply.authorUsername ? `username=${encodeURIComponent(reply.authorUsername)}` : `uid=${encodeURIComponent(reply.uid)}`}`;
+  authorLink.textContent = reply.authorName || "Googleユーザー";
+  authorLink.setAttribute("aria-label", `${authorLink.textContent}のプロフィールを見る`);
+  author.append(authorLink);
   const text = document.createElement("p");
   text.textContent = reply.content;
   content.append(author, text);
@@ -149,7 +153,11 @@ const createPostElement = (postId, post) => {
   loadCustomAvatar(postAvatar, post.uid, post.authorAvatarId);
   authorGroup.append(postAvatar);
   const author = document.createElement("strong");
-  author.textContent = post.authorName || "Googleユーザー";
+  const authorLink = document.createElement("a");
+  authorLink.href = `profile.html?${post.authorUsername ? `username=${encodeURIComponent(post.authorUsername)}` : `uid=${encodeURIComponent(post.uid)}`}`;
+  authorLink.textContent = post.authorName || "Googleユーザー";
+  authorLink.setAttribute("aria-label", `${authorLink.textContent}のプロフィールを見る`);
+  author.append(authorLink);
   authorGroup.append(author);
   if (post.authorUsername) {
     const username = document.createElement("small");
@@ -211,7 +219,7 @@ const createPostElement = (postId, post) => {
   });
   actions.append(likeButton);
 
-  if (currentUser && currentUser.uid !== post.uid && post.authorUsername) {
+  if (currentUser && currentUser.uid !== post.uid && post.uid) {
     const followButton = document.createElement("button");
     followButton.type = "button";
     followButton.className = "community-follow-button";
@@ -219,18 +227,26 @@ const createPostElement = (postId, post) => {
     followButton.textContent = followingIds.has(post.uid) ? "フォロー中" : "フォロー";
     followButton.disabled = blockedByIds.has(post.uid);
     followButton.addEventListener("click", async () => {
+      const wasFollowing = followingIds.has(post.uid);
       followButton.disabled = true;
       try {
-        if (followingIds.has(post.uid)) {
+        if (wasFollowing) {
           await unfollowUser(currentUser.uid, post.uid);
+          followingIds.delete(post.uid);
+          followButton.textContent = "フォロー";
+          setPostStatus(`${post.authorName || "ユーザー"}のフォローを解除しました。`);
         } else {
           await followUser(currentUser.uid, post.uid);
+          followingIds.add(post.uid);
+          followButton.textContent = "フォロー中";
           await createNotification(post.uid, {
             type: "follow",
             content: "",
           });
+          setPostStatus(`${post.authorName || "ユーザー"}をフォロー中です。`);
         }
       } catch (error) {
+        followButton.textContent = wasFollowing ? "フォロー中" : "フォロー";
         setPostStatus(firestoreErrorMessage(error), true);
       } finally {
         followButton.disabled = !currentUser || blockedByIds.has(post.uid);
