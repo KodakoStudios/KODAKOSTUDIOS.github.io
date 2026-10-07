@@ -94,6 +94,14 @@ setPersistence(auth, browserLocalPersistence)
         if (!authErrorShown) {
           showStatus(user ? "Googleアカウントでログイン中です。" : "Googleアカウントでログインできます。");
         }
+        if (user) {
+          import("./social-graph.js")
+            .then(({ ensureDeveloperFollow }) => ensureDeveloperFollow(user.uid))
+            .catch((error) => {
+              console.error("Required developer follow could not be saved:", error);
+              showStatus(`開発者アカウントのフォローを保存できませんでした（${error.code || "unknown"}）。Firestoreルールを公開してください。`, true);
+            });
+        }
       },
       (error) => {
         authReady = true;

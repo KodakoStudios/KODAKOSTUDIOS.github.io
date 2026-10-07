@@ -53,6 +53,17 @@
           <div class="fan-create-heading"><span class="fan-avatar" id="community-avatar">K</span><div><b>ファン広場に投稿</b><small id="community-user">Googleログインが必要です</small></div></div>
           <div class="fan-create-actions"><a href="#fan-comment-composer">テキストを投稿</a><a href="#fan-art-composer">ファンアート</a><a href="#fan-video-composer">ファンビデオ</a></div>
         </section>
+        <section class="community-search" aria-labelledby="community-search-heading">
+          <h2 id="community-search-heading">ユーザー・投稿を検索</h2>
+          <form id="community-search-form" role="search">
+            <label class="visually-hidden" for="community-search-input">ユーザー名または投稿キーワード</label>
+            <input id="community-search-input" type="search" maxlength="80" placeholder="@ユーザー名 / 投稿内容 / 投稿者名">
+            <button class="button button-secondary" type="submit">検索</button>
+            <button class="button button-light" id="community-search-clear" type="button">クリア</button>
+          </form>
+          <p id="community-search-status" role="status" aria-live="polite"></p>
+          <div id="community-search-users" class="community-search-results"></div>
+        </section>
         <nav class="feed-tabs" aria-label="投稿の種類">
           <button type="button" class="active" data-feed-filter="all" aria-pressed="true">すべて</button>
           <button type="button" data-feed-filter="art" aria-pressed="false">ファンアート</button>

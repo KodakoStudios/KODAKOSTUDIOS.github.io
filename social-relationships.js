@@ -2,7 +2,8 @@ import { collection, collectionGroup, onSnapshot, query, where } from "https://w
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
 import { db, getUserProfile } from "./social-data.js";
-import { blockUser, followUser, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
+import { blockUser, followUser, getBlockedUserLimit, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
+import { DEVELOPER_UID } from "./developer-mode.js";
 
 const status = document.getElementById("relationships-status");
 const followingList = document.getElementById("following-list");
@@ -49,7 +50,7 @@ const makeButton = (label, action, disabled = false) => {
       setStatus("関係設定を更新しました。");
     } catch (error) {
       const messages = {
-        "relationship-block-limit": "ブロックできるのは最大10人です。",
+        "relationship-block-limit": `ブロックできるのは最大${currentUser ? getBlockedUserLimit(currentUser.uid) : MAX_BLOCKED_USERS}人です。`,
         "relationship-blocked": "ブロック中のため、このユーザーはフォローできません。",
         "permission-denied": "操作できません。もう一度ログインしてお試しください。",
       };
@@ -82,18 +83,22 @@ const renderRelationshipList = async (list, ids, kind) => {
 
     if (kind === "blocked") {
       row.append(makeButton("ブロック解除", () => unblockUser(currentUser.uid, uid)));
+    } else if (kind === "following" && uid === DEVELOPER_UID) {
+      row.append(makeButton("フォロー中（固定）", () => Promise.resolve(), true));
     } else if (kind === "following") {
       row.append(
         makeButton("フォロー解除", () => unfollowUser(currentUser.uid, uid)),
-        makeButton("ブロック", () => blockUser(currentUser.uid, uid), blockedIds.size >= MAX_BLOCKED_USERS),
+        makeButton("ブロック", () => blockUser(currentUser.uid, uid), blockedIds.size >= getBlockedUserLimit(currentUser.uid)),
       );
+    } else if (uid === DEVELOPER_UID) {
+      row.append(makeButton("フォロー中（固定）", () => Promise.resolve(), true));
     } else if (uid !== currentUser.uid) {
       row.append(
         makeButton(followingIds.has(uid) ? "フォロー中" : "フォロー", () =>
           followingIds.has(uid) ? unfollowUser(currentUser.uid, uid) : followUser(currentUser.uid, uid),
           blockedIds.has(uid) || blockedByIds.has(uid),
         ),
-        makeButton("ブロック", () => blockUser(currentUser.uid, uid), blockedIds.size >= MAX_BLOCKED_USERS),
+        makeButton("ブロック", () => blockUser(currentUser.uid, uid), blockedIds.size >= getBlockedUserLimit(currentUser.uid)),
       );
     }
     return row;
@@ -110,7 +115,7 @@ const renderRelationshipList = async (list, ids, kind) => {
 const renderLists = () => {
   followingCount.textContent = `(${followingIds.size})`;
   followersCount.textContent = `(${followerIds.size})`;
-  blockedCount.textContent = `(${blockedIds.size}/${MAX_BLOCKED_USERS})`;
+  blockedCount.textContent = `(${blockedIds.size}/${currentUser ? getBlockedUserLimit(currentUser.uid) : MAX_BLOCKED_USERS})`;
   renderRelationshipList(followingList, followingIds, "following");
   renderRelationshipList(followersList, followerIds, "followers");
   renderRelationshipList(blockedList, blockedIds, "blocked");

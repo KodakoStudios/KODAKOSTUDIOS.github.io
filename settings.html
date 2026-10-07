@@ -32,9 +32,15 @@
     <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>プロフィールの編集や、自分の投稿・返信履歴を確認できます。</p></div>
     <div class="settings-login">
       <span class="google-g" aria-hidden="true">G</span>
-      <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">接続を確認しています…</small><a id="debug-entry" href="#debug-panel" hidden>開発者デバッグを開く</a></div>
+      <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">接続を確認しています…</small></div>
       <button class="button button-google" type="button" data-firebase-login disabled><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button>
     </div>
+    <nav class="settings-local-tabs" aria-label="設定タブ">
+      <a href="#profile-settings-form">プロフィール</a>
+      <a href="#social-relationships">コミュニティ</a>
+      <a href="#notification-settings">通知</a>
+      <a id="developer-mode-tab" href="#developer-mode" hidden>Developer Mode</a>
+    </nav>
     <form class="settings-card" id="profile-settings-form">
       <div class="settings-card-heading"><div><p class="eyebrow">PROFILE</p><h2>プロフィール</h2></div><span class="api-badge" id="profile-save-state"><i></i> ログインが必要です</span></div>
       <div class="avatar-setting">
@@ -92,7 +98,7 @@
       </details>
       <details class="relationship-group">
         <summary>ブロック中 <span id="blocked-count"></span></summary>
-        <small>現在は最大10人までブロックできます。サブスクの利用確認に対応した後、対象プランは最大50人になります。</small>
+        <small>通常は最大10人までブロックできます。サブスクの利用確認に対応した後、対象プランは最大50人になります。</small>
         <div class="relationship-list" id="blocked-list"></div>
       </details>
     </section>
@@ -104,6 +110,22 @@
       <p id="debug-relationship-status"></p>
       <pre id="debug-history-error" hidden></pre>
       <small>この画面は表示確認用です。権限やセキュリティの保護機能ではありません。</small>
+    </section>
+    <section class="settings-card developer-panel" id="developer-mode" aria-labelledby="developer-mode-heading" hidden>
+      <div class="settings-card-heading"><div><p class="eyebrow">LOCAL TEST CONTROLS</p><h2 id="developer-mode-heading">Developer Mode</h2></div></div>
+      <p class="developer-mode-warning">テスト用の表示・上限設定です。実際のサブスクリプション契約や支払いを作成・記録するものではなく、このブラウザー内だけに保存されます。</p>
+      <label class="settings-field"><span>サブスク状態（テスト）</span>
+        <select id="developer-subscription-state">
+          <option value="inactive">未加入</option>
+          <option value="active">加入中</option>
+        </select>
+      </label>
+      <label class="settings-field"><span>支払い済み金額（テスト表示・円）</span>
+        <input id="developer-paid-amount" type="number" min="0" max="100000000" step="1" value="0">
+      </label>
+      <label class="toggle-setting"><span><b>テスト用に上限を拡張</b><small>ブロック上限を50人、投稿・返信を最大5,000文字、自己紹介を最大2,000文字にします。</small></span><input type="checkbox" id="developer-limit-bypass"><i aria-hidden="true"></i></label>
+      <small id="developer-mode-status" class="feature-pending" role="status" aria-live="polite">設定はこのブラウザーに保存されます。</small>
+      <button class="button button-primary" id="developer-mode-save" type="button">テスト設定を保存</button>
     </section>
     <section class="settings-card x-account-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SOCIAL CONNECTION</p><h2>Xアカウント連携</h2></div><span class="api-badge"><i></i> OAuth準備中</span></div>

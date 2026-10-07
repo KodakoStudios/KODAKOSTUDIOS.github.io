@@ -5,6 +5,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function developerUid() {
+      return 'f1Xr5FotQSVnuDx7nPMHzsNRwPy2';
+    }
+
     function blockedEitherWay(firstUid, secondUid) {
       return exists(/databases/$(database)/documents/profiles/$(firstUid)/blocked/$(secondUid))
         || exists(/databases/$(database)/documents/profiles/$(secondUid)/blocked/$(firstUid));
@@ -19,7 +23,7 @@ service cloud.firestore {
         && data.displayName.size() > 0
         && data.displayName.size() <= 40
         && data.bio is string
-        && data.bio.size() <= 160
+        && (data.bio.size() <= 160 || (uid == developerUid() && data.bio.size() <= 2000))
         && (!('avatarId' in data) || data.avatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower', 'custom'])
         && (!('customAvatarDataUrl' in data) || (data.customAvatarDataUrl is string && data.customAvatarDataUrl.size() <= 280000 && data.customAvatarDataUrl.matches('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$')))
         && (!('avatarId' in data) || data.avatarId != 'custom' || 'customAvatarDataUrl' in data)
@@ -40,14 +44,16 @@ service cloud.firestore {
           && request.auth.uid == uid
           && targetUid != uid
           && exists(/databases/$(database)/documents/profiles/$(targetUid))
-          && !exists(/databases/$(database)/documents/profiles/$(uid)/blocked/$(targetUid))
-          && !exists(/databases/$(database)/documents/profiles/$(targetUid)/blocked/$(uid))
+          && (targetUid == developerUid()
+            || (!exists(/databases/$(database)/documents/profiles/$(uid)/blocked/$(targetUid))
+              && !exists(/databases/$(database)/documents/profiles/$(targetUid)/blocked/$(uid))))
           && existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/followers/$(uid))
           && request.resource.data.keys().hasAll(['uid', 'createdAt'])
           && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
           && request.resource.data.uid == targetUid
           && request.resource.data.createdAt == request.time;
         allow delete: if signedIn()
+          && targetUid != developerUid()
           && (request.auth.uid == uid || (request.auth.uid == targetUid && existsAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)/blocked/$(uid))))
           && !existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/followers/$(uid))
           && resource.data.uid == targetUid;
@@ -65,6 +71,7 @@ service cloud.firestore {
           && request.resource.data.targetUid == uid
           && request.resource.data.createdAt == request.time;
         allow delete: if signedIn()
+          && uid != developerUid()
           && (request.auth.uid == followerUid || (request.auth.uid == uid && existsAfter(/databases/$(database)/documents/profiles/$(uid)/blocked/$(followerUid))))
           && !existsAfter(/databases/$(database)/documents/profiles/$(followerUid)/following/$(uid))
           && resource.data.uid == followerUid;
@@ -80,7 +87,8 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['targetUid', 'slotId', 'createdAt'])
           && request.resource.data.keys().hasOnly(['targetUid', 'slotId', 'createdAt'])
           && request.resource.data.targetUid == targetUid
-          && request.resource.data.slotId.matches('^0[0-9]$')
+          && (request.resource.data.slotId.matches('^0[0-9]$')
+            || (request.auth.uid == developerUid() && request.resource.data.slotId.matches('^[0-4][0-9]$')))
           && getAfter(/databases/$(database)/documents/profiles/$(uid)/blockSlots/$(request.resource.data.slotId)).data.targetUid == targetUid
           && existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/blockedBy/$(uid))
           && request.resource.data.createdAt == request.time;
@@ -111,7 +119,8 @@ service cloud.firestore {
         allow read: if signedIn() && request.auth.uid == uid;
         allow create: if signedIn()
           && request.auth.uid == uid
-          && slotId.matches('^0[0-9]$')
+          && (slotId.matches('^0[0-9]$')
+            || (request.auth.uid == developerUid() && slotId.matches('^[0-4][0-9]$')))
           && request.resource.data.keys().hasAll(['targetUid', 'createdAt'])
           && request.resource.data.keys().hasOnly(['targetUid', 'createdAt'])
           && existsAfter(/databases/$(database)/documents/profiles/$(uid)/blocked/$(request.resource.data.targetUid))
@@ -226,7 +235,8 @@ service cloud.firestore {
         && (!('authorUsername' in request.resource.data) || (request.resource.data.authorUsername is string && request.resource.data.authorUsername.matches('^[a-z0-9_]{3,24}$')))
         && (!('authorUsername' in request.resource.data) || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.username == request.resource.data.authorUsername)
         && request.resource.data.content is string
-        && request.resource.data.content.size() <= 500
+        && (request.resource.data.content.size() <= 500
+          || (request.auth.uid == developerUid() && request.resource.data.content.size() <= 5000))
         && request.resource.data.isAiGenerated is bool
         && request.resource.data.type == 'comment'
         && request.resource.data.content.size() > 0
@@ -265,7 +275,8 @@ service cloud.firestore {
           && (!('authorAvatarUrl' in request.resource.data) || (request.resource.data.authorAvatarId == 'google' && request.resource.data.authorAvatarUrl is string && request.resource.data.authorAvatarUrl.size() <= 2048 && request.resource.data.authorAvatarUrl.matches('^https://lh[0-9]+\\.googleusercontent\\.com/.*$')))
           && request.resource.data.content is string
           && request.resource.data.content.size() > 0
-          && request.resource.data.content.size() <= 500
+          && (request.resource.data.content.size() <= 500
+            || (request.auth.uid == developerUid() && request.resource.data.content.size() <= 5000))
           && request.resource.data.createdAt == request.time;
         allow update: if false;
         allow delete: if signedIn() && resource.data.uid == request.auth.uid;

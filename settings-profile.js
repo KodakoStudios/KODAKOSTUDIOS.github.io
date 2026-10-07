@@ -2,8 +2,8 @@ import { collection, collectionGroup, doc, limit, onSnapshot, query, runTransact
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
 import { db, getProfileAvatarId, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
+import { getDeveloperOverrides, isDeveloper, saveDeveloperOverrides } from "./developer-mode.js";
 
-const DEBUG_OWNER_UID = "f1Xr5FotQSVnuDx7nPMHzsNRwPy2";
 const form = document.getElementById("profile-settings-form");
 const usernameInput = document.getElementById("profile-username");
 const displayNameInput = document.getElementById("profile-display-name");
@@ -33,18 +33,35 @@ let pendingCustomAvatarDataUrl = "";
 const postsStatus = document.getElementById("profile-posts-status");
 const postsHistory = document.getElementById("profile-post-history");
 const debugPanel = document.getElementById("debug-panel");
-const debugEntry = document.getElementById("debug-entry");
+const developerTab = document.getElementById("developer-mode-tab");
+const developerPanel = document.getElementById("developer-mode");
+const developerSubscriptionState = document.getElementById("developer-subscription-state");
+const developerPaidAmount = document.getElementById("developer-paid-amount");
+const developerLimitBypass = document.getElementById("developer-limit-bypass");
+const developerModeStatus = document.getElementById("developer-mode-status");
+const developerModeSave = document.getElementById("developer-mode-save");
 const debugUidCheck = document.getElementById("debug-uid-check");
 const debugPostHistory = document.getElementById("debug-post-history");
 const debugReplyHistory = document.getElementById("debug-reply-history");
 const debugHistoryError = document.getElementById("debug-history-error");
 
 const updateDebugIdentity = (user) => {
-  const allowed = Boolean(user && user.uid === DEBUG_OWNER_UID);
+  const allowed = isDeveloper(user);
   debugPanel.hidden = !allowed;
-  debugEntry.hidden = !allowed;
+  developerTab.hidden = !allowed;
+  developerPanel.hidden = !allowed;
   if (!allowed) return;
   debugUidCheck.textContent = `ログインUID: ${user.uid}（許可UIDと一致）`;
+  try {
+    const overrides = getDeveloperOverrides(user);
+    developerSubscriptionState.value = overrides.subscriptionActive ? "active" : "inactive";
+    developerPaidAmount.value = String(overrides.paidAmountYen);
+    developerLimitBypass.checked = overrides.bypassLimits;
+    bioInput.maxLength = overrides.bypassLimits ? 2000 : 160;
+  } catch (error) {
+    developerModeStatus.textContent = error.message;
+    developerModeStatus.dataset.state = "error";
+  }
 };
 
 const renderHistoryItem = ({ id, postId, data, kind: entryKind }) => {
@@ -327,6 +344,7 @@ onAuthStateChanged(auth, async (user) => {
     avatarInputs.forEach((input) => {
       input.checked = input.value === avatarId;
     });
+
     renderAvatarPreview(avatarId, user);
     usernameInput.value = profile?.username || defaultUsername(user);
     displayNameInput.value = profile?.displayName || user.displayName || "";
@@ -338,6 +356,31 @@ onAuthStateChanged(auth, async (user) => {
 }, (error) => {
   setStatus(`認証状態を確認できませんでした（${error.code || "unknown"}）。`, true);
   postsStatus.textContent = `投稿履歴の認証状態を確認できませんでした（${error.code || "unknown"}）。`;
+});
+
+developerModeSave.addEventListener("click", () => {
+  if (!isDeveloper(currentUser)) return;
+  const paidAmountYen = Number(developerPaidAmount.value);
+  if (!Number.isSafeInteger(paidAmountYen) || paidAmountYen < 0 || paidAmountYen > 100000000) {
+    developerModeStatus.textContent = "金額は0〜100,000,000円の整数で入力してください。";
+    developerModeStatus.dataset.state = "error";
+    return;
+  }
+  try {
+    const overrides = {
+      subscriptionActive: developerSubscriptionState.value === "active",
+      paidAmountYen,
+      bypassLimits: developerLimitBypass.checked,
+    };
+    saveDeveloperOverrides(currentUser, overrides);
+    bioInput.maxLength = overrides.bypassLimits ? 2000 : 160;
+    developerModeStatus.textContent = `テスト設定を保存しました（サブスク: ${overrides.subscriptionActive ? "加入中" : "未加入"}、テスト表示額: ${paidAmountYen.toLocaleString("ja-JP")}円）。各ページを再読み込みすると上限設定が反映されます。実際の契約・決済記録には反映されません。`;
+    developerModeStatus.dataset.state = "info";
+  } catch (error) {
+    console.error("Developer Mode settings could not be saved:", error);
+    developerModeStatus.textContent = `テスト設定を保存できませんでした: ${error.message}`;
+    developerModeStatus.dataset.state = "error";
+  }
 });
 
 window.addEventListener("pagehide", () => {
@@ -353,13 +396,14 @@ form.addEventListener("submit", async (event) => {
   const username = usernameInput.value.trim().toLowerCase();
   const displayName = displayNameInput.value.trim();
   const bio = bioInput.value.trim();
+  const bioLimit = isDeveloper(currentUser) && getDeveloperOverrides(currentUser).bypassLimits ? 2000 : 160;
   const avatarId = selectedAvatarId();
   if (!/^[a-z0-9_]{3,24}$/.test(username)) {
     setStatus("ユーザー名は英小文字・数字・_ の3〜24文字で入力してください。", true);
     return;
   }
-  if (!displayName || displayName.length > 40 || bio.length > 160) {
-    setStatus("表示名は1〜40文字、自己紹介は160文字以内で入力してください。", true);
+  if (!displayName || displayName.length > 40 || bio.length > bioLimit) {
+    setStatus(`表示名は1〜40文字、自己紹介は${bioLimit}文字以内で入力してください。`, true);
     return;
   }
   const customAvatarDataUrl = pendingCustomAvatarDataUrl || savedCustomAvatarDataUrl;

@@ -1,7 +1,10 @@
 import { doc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { db } from "./social-data.js";
+import { DEVELOPER_UID, getDeveloperOverrides, isDeveloper } from "./developer-mode.js";
 
 export const MAX_BLOCKED_USERS = 10;
+export const getBlockedUserLimit = (uid) =>
+  isDeveloper(uid) && getDeveloperOverrides(uid).bypassLimits ? 50 : MAX_BLOCKED_USERS;
 
 const relationshipRef = (uid, collectionName, targetUid) =>
   doc(db, "profiles", uid, collectionName, targetUid);
@@ -19,20 +22,24 @@ export const followUser = async (uid, targetUid) => {
       transaction.get(ownBlockRef),
       transaction.get(targetBlockRef),
     ]);
-    if (ownBlock.exists() || targetBlock.exists()) {
+    if (targetUid !== DEVELOPER_UID && (ownBlock.exists() || targetBlock.exists())) {
       const error = new Error("このユーザーはフォローできません。");
       error.code = "relationship-blocked";
       throw error;
     }
-    if (following.exists()) return false;
-    transaction.set(followingRef, { uid: targetUid, createdAt: serverTimestamp() });
-    transaction.set(followerRef, { uid, targetUid, createdAt: serverTimestamp() });
-    return true;
+    if (!following.exists()) transaction.set(followingRef, { uid: targetUid, createdAt: serverTimestamp() });
+    if (!follower.exists()) transaction.set(followerRef, { uid, targetUid, createdAt: serverTimestamp() });
+    return !following.exists();
   });
 };
 
 export const unfollowUser = async (uid, targetUid) => {
   if (!uid || !targetUid) return;
+  if (targetUid === DEVELOPER_UID) {
+    const error = new Error("開発者アカウントのフォローは解除できません。");
+    error.code = "relationship-fixed-follow";
+    throw error;
+  }
   await runTransaction(db, async (transaction) => {
     const followingRef = relationshipRef(uid, "following", targetUid);
     const followerRef = relationshipRef(targetUid, "followers", uid);
@@ -51,7 +58,8 @@ export const blockUser = async (uid, targetUid) => {
     const blockRef = relationshipRef(uid, "blocked", targetUid);
     const blockedByRef = relationshipRef(targetUid, "blockedBy", uid);
     const targetProfileRef = doc(db, "profiles", targetUid);
-    const slotRefs = Array.from({ length: MAX_BLOCKED_USERS }, (_, index) =>
+    const blockedUserLimit = getBlockedUserLimit(uid);
+    const slotRefs = Array.from({ length: blockedUserLimit }, (_, index) =>
       relationshipRef(uid, "blockSlots", String(index).padStart(2, "0")));
     const ownFollowingRef = relationshipRef(uid, "following", targetUid);
     const targetFollowersRef = relationshipRef(targetUid, "followers", uid);
@@ -71,8 +79,8 @@ export const blockUser = async (uid, targetUid) => {
       transaction.get(targetFollowingRef),
       transaction.get(ownFollowersRef),
     ]);
-    const slotSnapshots = rest.slice(0, MAX_BLOCKED_USERS);
-    const [ownFollowing, targetFollower, targetFollowing, ownFollower] = rest.slice(MAX_BLOCKED_USERS);
+    const slotSnapshots = rest.slice(0, blockedUserLimit);
+    const [ownFollowing, targetFollower, targetFollowing, ownFollower] = rest.slice(blockedUserLimit);
     if (existingBlock.exists()) return false;
     if (!targetProfile.exists()) {
       const error = new Error("対象のプロフィールが見つかりません。");
@@ -81,7 +89,7 @@ export const blockUser = async (uid, targetUid) => {
     }
     const availableSlot = slotSnapshots.findIndex((snapshot) => !snapshot.exists());
     if (availableSlot < 0) {
-      const error = new Error("ブロックできるのは最大10人です。");
+      const error = new Error(`ブロックできるのは最大${blockedUserLimit}人です。`);
       error.code = "relationship-block-limit";
       throw error;
     }
@@ -89,12 +97,17 @@ export const blockUser = async (uid, targetUid) => {
     transaction.set(blockRef, { targetUid, slotId, createdAt: serverTimestamp() });
     transaction.set(blockedByRef, { blockerUid: uid, targetUid, createdAt: serverTimestamp() });
     transaction.set(slotRefs[availableSlot], { targetUid, createdAt: serverTimestamp() });
-    if (ownFollowing.exists()) transaction.delete(ownFollowingRef);
-    if (targetFollower.exists()) transaction.delete(targetFollowersRef);
+    if (targetUid !== DEVELOPER_UID && ownFollowing.exists()) transaction.delete(ownFollowingRef);
+    if (targetUid !== DEVELOPER_UID && targetFollower.exists()) transaction.delete(targetFollowersRef);
     if (targetFollowing.exists()) transaction.delete(targetFollowingRef);
     if (ownFollower.exists()) transaction.delete(ownFollowersRef);
     return true;
   });
+};
+
+export const ensureDeveloperFollow = async (uid) => {
+  if (!uid || uid === DEVELOPER_UID) return false;
+  return followUser(uid, DEVELOPER_UID);
 };
 
 export const unblockUser = async (uid, targetUid) => {
@@ -105,7 +118,9 @@ export const unblockUser = async (uid, targetUid) => {
     const blockSnapshot = await transaction.get(blockRef);
     if (!blockSnapshot.exists()) return;
     const slotId = blockSnapshot.data().slotId;
-    if (typeof slotId !== "string" || !/^(0[0-9])$/.test(slotId)) {
+    const validSlotId = typeof slotId === "string"
+      && (/^(0[0-9])$/.test(slotId) || (isDeveloper(uid) && /^[0-4][0-9]$/.test(slotId)));
+    if (!validSlotId) {
       const error = new Error("ブロック情報を確認できません。");
       error.code = "relationship-invalid-block";
       throw error;

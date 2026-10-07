@@ -1,8 +1,9 @@
-import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, documentId, endAt, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAt, where } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
 import { db, getDisplayName, getProfileAvatarId, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
-import { blockUser, followUser, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
+import { blockUser, followUser, getBlockedUserLimit, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
+import { DEVELOPER_UID, getDeveloperOverrides } from "./developer-mode.js";
 
 const postsRef = collection(db, "communityPosts");
 const form = document.getElementById("fan-comment-form");
@@ -14,6 +15,11 @@ const feedStatus = document.getElementById("community-feed-status");
 const postList = document.getElementById("community-post-list");
 const userLabel = document.getElementById("community-user");
 const avatar = document.getElementById("community-avatar");
+const searchForm = document.getElementById("community-search-form");
+const searchInput = document.getElementById("community-search-input");
+const searchClear = document.getElementById("community-search-clear");
+const searchStatus = document.getElementById("community-search-status");
+const searchUsers = document.getElementById("community-search-users");
 
 let currentUser = null;
 let currentDisplayName = "";
@@ -24,6 +30,7 @@ let followingIds = new Set();
 let blockedIds = new Set();
 let blockedByIds = new Set();
 let activeFilter = "all";
+let activeSearchTerm = "";
 let submitting = false;
 let followUnsubscribe = null;
 let blockedUnsubscribe = null;
@@ -41,8 +48,9 @@ const setPostStatus = (message, isError = false) => {
 };
 
 const firestoreErrorMessage = (error) => {
+  if (error.code === "relationship-fixed-follow") return "運営アカウントのフォローは解除できません。";
   if (error.code === "relationship-blocked") return "ブロック関係があるため、このユーザーはフォローできません。";
-  if (error.code === "relationship-block-limit") return `ブロックできるのは最大${MAX_BLOCKED_USERS}人です。`;
+  if (error.code === "relationship-block-limit") return `ブロックできるのは最大${currentUser ? getBlockedUserLimit(currentUser.uid) : MAX_BLOCKED_USERS}人です。`;
   if (error.code === "permission-denied") return "操作できません。Firebase Consoleへ最新のFirestoreルールを公開してください。";
   if (error.code === "unavailable" || error.code === "network-request-failed") return "Firebaseへ接続できません。ネットワークを確認して再度お試しください。";
   if (error.code === "failed-precondition") return "Firebaseのデータベース設定を確認してください。";
@@ -224,8 +232,9 @@ const createPostElement = (postId, post) => {
     followButton.type = "button";
     followButton.className = "community-follow-button";
     followButton.dataset.followUid = post.uid;
-    followButton.textContent = followingIds.has(post.uid) ? "フォロー中" : "フォロー";
-    followButton.disabled = blockedByIds.has(post.uid);
+    const forcedFollow = post.uid === DEVELOPER_UID;
+    followButton.textContent = followingIds.has(post.uid) || forcedFollow ? "フォロー中" : "フォロー";
+    followButton.disabled = forcedFollow || blockedByIds.has(post.uid);
     followButton.addEventListener("click", async () => {
       const wasFollowing = followingIds.has(post.uid);
       followButton.disabled = true;
@@ -260,7 +269,7 @@ const createPostElement = (postId, post) => {
     blockButton.type = "button";
     blockButton.className = "community-block-button";
     blockButton.textContent = blockedIds.has(post.uid) ? "ブロック解除" : "ブロック";
-    blockButton.disabled = !blockedIds.has(post.uid) && blockedIds.size >= MAX_BLOCKED_USERS;
+    blockButton.disabled = !blockedIds.has(post.uid) && blockedIds.size >= getBlockedUserLimit(currentUser.uid);
     blockButton.addEventListener("click", async () => {
       blockButton.disabled = true;
       try {
@@ -272,9 +281,9 @@ const createPostElement = (postId, post) => {
         }
       } catch (error) {
         setPostStatus(error.code === "relationship-block-limit"
-          ? `ブロックできるのは最大${MAX_BLOCKED_USERS}人です。`
+          ? `ブロックできるのは最大${getBlockedUserLimit(currentUser.uid)}人です。`
           : firestoreErrorMessage(error), true);
-        blockButton.disabled = !currentUser || (!blockedIds.has(post.uid) && blockedIds.size >= MAX_BLOCKED_USERS);
+        blockButton.disabled = !currentUser || (!blockedIds.has(post.uid) && blockedIds.size >= getBlockedUserLimit(currentUser.uid));
       }
     });
     actions.append(blockButton);
@@ -288,9 +297,10 @@ const createPostElement = (postId, post) => {
   replyForm.className = "community-reply-form";
   const replyInput = document.createElement("textarea");
   replyInput.rows = 2;
-  replyInput.maxLength = 500;
+  const maxTextLength = currentUser?.uid === DEVELOPER_UID && getDeveloperOverrides(currentUser).bypassLimits ? 5000 : 500;
+  replyInput.maxLength = maxTextLength;
   replyInput.required = true;
-  replyInput.placeholder = currentUser ? "コメントを書く（500文字以内）" : "ログインするとコメントできます";
+  replyInput.placeholder = currentUser ? `コメントを書く（${maxTextLength}文字以内）` : "ログインするとコメントできます";
   replyInput.disabled = !currentUser;
   const replySubmit = document.createElement("button");
   replySubmit.type = "submit";
@@ -308,7 +318,7 @@ const createPostElement = (postId, post) => {
     event.preventDefault();
     if (!currentUser) return;
     const reply = replyInput.value.trim();
-    if (!reply || reply.length > 500) return;
+    if (!reply || reply.length > maxTextLength) return;
     replySubmit.disabled = true;
     replyStatus.textContent = "送信しています…";
     try {
@@ -366,14 +376,77 @@ const renderPosts = () => {
     const post = item.data();
     if (currentUser && post.uid !== currentUser.uid && (blockedIds.has(post.uid) || blockedByIds.has(post.uid))) return;
     if (activeFilter !== "all" && (post.type || "comment") !== activeFilter) return;
+    if (activeSearchTerm && ![post.content, post.authorName, post.authorUsername].some((value) => String(value || "").toLocaleLowerCase("ja").includes(activeSearchTerm))) return;
     fragment.append(createPostElement(item.id, post));
   });
   postList.append(fragment);
   const visibleCount = postList.children.length;
   feedStatus.textContent = visibleCount
     ? `${visibleCount}件の投稿を表示しています。`
-    : activeFilter === "all" ? "まだ投稿はありません。最初の投稿をしてみましょう。" : "この種類の投稿はまだありません。";
+    : activeSearchTerm ? "検索に一致する投稿は、現在読み込まれている投稿の中にありません。" : activeFilter === "all" ? "まだ投稿はありません。最初の投稿をしてみましょう。" : "この種類の投稿はまだありません。";
 };
+
+searchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const term = searchInput.value.trim().replace(/^@/, "").toLocaleLowerCase("ja");
+  activeSearchTerm = term;
+  searchUsers.replaceChildren();
+  if (!term) {
+    searchStatus.textContent = "ユーザー名または投稿キーワードを入力してください。";
+    if (postSnapshot) renderPosts();
+    return;
+  }
+  if (postSnapshot) renderPosts();
+  searchStatus.textContent = "投稿とユーザーを検索しています…";
+  try {
+    let userDocs = [];
+    if (/^[a-z0-9_]{1,24}$/.test(term)) {
+      const userSnapshot = await getDocs(query(
+        collection(db, "usernames"),
+        orderBy(documentId()),
+        startAt(term),
+        endAt(`${term}\uf8ff`),
+        limit(10),
+      ));
+      userDocs = userSnapshot.docs;
+    }
+    const results = await Promise.all(userDocs.map(async (item) => ({
+      uid: item.data().uid,
+      profile: await getUserProfile(item.data().uid),
+    })));
+    const validResults = results.filter((item) => item.uid && item.profile);
+    searchUsers.replaceChildren();
+    if (validResults.length) {
+      const heading = document.createElement("h3");
+      heading.textContent = "ユーザー";
+      searchUsers.append(heading);
+      validResults.forEach(({ uid, profile }) => {
+        const link = document.createElement("a");
+        link.href = `profile.html?username=${encodeURIComponent(profile.username)}`;
+        link.textContent = `${profile.displayName || "ユーザー"}${profile.username ? ` @${profile.username}` : ""}`;
+        searchUsers.append(link);
+      });
+    }
+    const postMatches = postSnapshot?.docs.filter((item) => {
+      const post = item.data();
+      return [post.content, post.authorName, post.authorUsername].some((value) => String(value || "").toLocaleLowerCase("ja").includes(term));
+    }).length || 0;
+    searchStatus.textContent = `${validResults.length}人のユーザーと、読み込み済みの最新30件から${postMatches}件の投稿が一致しました。`;
+    searchStatus.dataset.state = "info";
+  } catch (error) {
+    console.error("Community search failed:", error);
+    searchStatus.textContent = `ユーザー検索に失敗しました（${error.code || "unknown"}）。`;
+    searchStatus.dataset.state = "error";
+  }
+});
+
+searchClear.addEventListener("click", () => {
+  searchInput.value = "";
+  activeSearchTerm = "";
+  searchStatus.textContent = "";
+  searchUsers.replaceChildren();
+  if (postSnapshot) renderPosts();
+});
 
 const filterButtons = document.querySelectorAll("[data-feed-filter]");
 filterButtons.forEach((button) => {
@@ -391,6 +464,9 @@ filterButtons.forEach((button) => {
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  const maxTextLength = user?.uid === DEVELOPER_UID && getDeveloperOverrides(user).bypassLimits ? 5000 : 500;
+  commentInput.maxLength = maxTextLength;
+  commentInput.placeholder = `みんなが楽しくなるメッセージ（${maxTextLength}文字以内）`;
   commentInput.disabled = !user;
   aiUseInput.disabled = !user;
   submitButton.disabled = !user || submitting;
@@ -462,7 +538,8 @@ form.addEventListener("submit", async (event) => {
   }
 
   const content = commentInput.value.trim();
-  if (!content || content.length > 500 || !aiUseInput.value) {
+  const maxTextLength = currentUser.uid === DEVELOPER_UID && getDeveloperOverrides(currentUser).bypassLimits ? 5000 : 500;
+  if (!content || content.length > maxTextLength || !aiUseInput.value) {
     form.reportValidity();
     return;
   }

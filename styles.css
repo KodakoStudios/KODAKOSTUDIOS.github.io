@@ -359,6 +359,16 @@ a{color:inherit}
 .fan-create-actions{display:flex;gap:8px;margin:13px 0 0 50px}
 .fan-create-actions a{padding:7px 12px;border:1px solid var(--line);border-radius:20px;color:#505463;font-size:10px;font-weight:bold;text-decoration:none}
 .fan-create-actions a:hover{border-color:#b8c7ff;color:var(--blue)}
+.community-search{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.community-search h2{margin:0 0 10px;font-size:14px}
+.community-search form{display:flex;flex-wrap:wrap;gap:7px}
+.community-search input{flex:1;min-width:180px;padding:9px 11px;border:1px solid #dfe2ec;border-radius:8px;font:inherit;font-size:11px}
+.community-search .button{min-height:36px;padding:0 12px;font-size:10px}
+.community-search>p{margin:8px 0 0;color:var(--muted);font-size:10px}
+.community-search-results{display:grid;gap:5px;margin-top:7px}
+.community-search-results h3{margin:4px 0 0;font-size:11px}
+.community-search-results a{color:var(--blue);font-size:11px;text-decoration:none}
+.community-search-results a:hover{text-decoration:underline}
 .feed-tabs{display:flex;gap:5px;padding:4px;border-bottom:1px solid var(--line)}
 .feed-tabs button{padding:8px 13px;border:0;border-radius:18px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:bold;cursor:pointer}
 .feed-tabs button.active{background:#eff3ff;color:var(--blue)}
@@ -476,6 +486,11 @@ a{color:inherit}
 .settings-title{margin-bottom:25px}
 .settings-title h1{margin:0;font-family:var(--display);font-size:clamp(30px,5vw,44px)}
 .settings-title>p:last-child{color:var(--muted);font-size:13px}
+.profile-home-link{display:inline-flex;align-items:center;min-height:38px;margin-top:8px;padding:0 13px;font-size:11px;text-decoration:none}
+.settings-local-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 18px}
+.settings-local-tabs a{padding:8px 13px;border:1px solid var(--line);border-radius:18px;color:#505463;font-size:10px;font-weight:700;text-decoration:none}
+.settings-local-tabs a:hover{border-color:var(--blue);color:var(--blue)}
+.settings-local-tabs a[hidden]{display:none}
 .settings-login{display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:18px;border:1px solid #dce5ff;border-radius:12px;background:#f4f7ff}
 .settings-login>div{display:flex;flex:1;flex-direction:column}
 .settings-login b{font-size:13px}.settings-login small{color:var(--muted);font-size:11px}
@@ -504,6 +519,8 @@ a{color:inherit}
 #avatar-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
 .avatar-upload-settings>small{color:var(--muted);font-size:10px}
 .debug-panel[hidden]{display:none}
+.developer-panel[hidden]{display:none}
+.developer-mode-warning{padding:12px;border-radius:9px;background:#fff8e8;color:#765319;font-size:11px;line-height:1.7}
 .debug-panel p{margin:7px 0;font-size:11px}
 .debug-panel pre{max-height:180px;overflow:auto;padding:10px;border-radius:7px;background:#f4f5f8;white-space:pre-wrap;overflow-wrap:anywhere;font-size:10px}
 .avatar-cropper{display:grid;gap:10px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#f8f9fc}

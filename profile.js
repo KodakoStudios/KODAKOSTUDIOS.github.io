@@ -2,7 +2,8 @@ import { collection, collectionGroup, doc, getDoc, limit, onSnapshot, query, whe
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
 import { db, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
-import { blockUser, followUser, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
+import { blockUser, followUser, getBlockedUserLimit, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
+import { DEVELOPER_UID } from "./developer-mode.js";
 
 const profileName = document.getElementById("public-profile-name");
 const usernameLabel = document.getElementById("public-profile-username");
@@ -53,13 +54,15 @@ const renderAvatar = () => {
 
 const renderActions = () => {
   const canInteract = currentUser && targetUid && currentUser.uid !== targetUid;
+  const forcedFollow = Boolean(canInteract && targetUid === DEVELOPER_UID);
   loginLink.hidden = !targetUid || Boolean(currentUser);
-  followButton.hidden = !canInteract || isBlocked || isBlockedByTarget;
-  followButton.disabled = !canInteract || isBlockedByTarget;
-  followButton.textContent = isFollowing ? "フォロー中" : "フォロー";
+  followButton.hidden = !canInteract || (!forcedFollow && (isBlocked || isBlockedByTarget));
+  followButton.disabled = !canInteract || isBlockedByTarget || forcedFollow;
+  followButton.textContent = forcedFollow || isFollowing ? "フォロー中" : "フォロー";
   blockButton.hidden = !canInteract;
-  blockButton.disabled = !isBlocked && document.body.dataset.blockedCount === String(MAX_BLOCKED_USERS);
-  blockButton.textContent = isBlocked ? "ブロック解除" : `ブロック (${document.body.dataset.blockedCount || 0}/${MAX_BLOCKED_USERS})`;
+  const blockedUserLimit = currentUser ? getBlockedUserLimit(currentUser.uid) : MAX_BLOCKED_USERS;
+  blockButton.disabled = !isBlocked && Number(document.body.dataset.blockedCount || 0) >= blockedUserLimit;
+  blockButton.textContent = isBlocked ? "ブロック解除" : `ブロック (${document.body.dataset.blockedCount || 0}/${blockedUserLimit})`;
 };
 
 const renderPosts = (snapshot) => {
@@ -118,7 +121,7 @@ const watchRelationship = () => {
     return;
   }
   followingStateUnsubscribe = onSnapshot(doc(db, "profiles", currentUser.uid, "following", targetUid), (snapshot) => {
-    isFollowing = snapshot.exists();
+    isFollowing = snapshot.exists() || targetUid === DEVELOPER_UID;
     renderActions();
   }, (error) => {
     console.error("Profile follow state could not be loaded:", error);
@@ -238,7 +241,7 @@ blockButton.addEventListener("click", async () => {
     } else {
       await blockUser(currentUser.uid, targetUid);
       isBlocked = true;
-      isFollowing = false;
+      isFollowing = targetUid === DEVELOPER_UID;
       setStatus("ブロックしました。相手の投稿は双方のファン広場で非表示になります。");
     }
     renderActions();
