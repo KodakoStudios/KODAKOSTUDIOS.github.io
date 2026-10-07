@@ -30,6 +30,7 @@ a{color:inherit}
 .button{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:46px;padding:0 20px;border:0;border-radius:28px;font:inherit;font-size:13px;font-weight:800;text-decoration:none;cursor:pointer;transition:transform .18s,box-shadow .18s}
 .button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 7px 16px #18192120}
 .button-primary{background:var(--blue);color:#fff}
+.button-secondary{border:1px solid var(--line);background:#fff;color:var(--ink)}
 .button-light{background:#fff;color:var(--ink);box-shadow:0 3px 14px #20284812}
 .hero-stamp{position:absolute;left:300px;bottom:-15px;display:grid;place-content:center;width:104px;height:104px;border:4px solid #fff;border-radius:50%;background:var(--pink);color:#fff;text-align:center;font-family:var(--display);font-size:17px;line-height:1.15;transform:rotate(-12deg);box-shadow:0 5px 12px #151b3720}
 .hero-stamp b{font-family:Arial,sans-serif;font-size:11px}
@@ -376,6 +377,18 @@ a{color:inherit}
 .community-post-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .community-post-actions button,.community-like-button{min-height:32px;padding:5px 11px;border:1px solid #e1e4ec;border-radius:18px;background:#fff;color:#505463;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
 .community-post-actions button:disabled,.community-like-button:disabled{cursor:not-allowed;opacity:.55}
+.community-post-actions .community-block-button{margin-left:auto;color:#8a4653}
+.relationship-group{padding:12px 0;border-top:1px solid #eff0f4}
+.relationship-group summary{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700;cursor:pointer}
+.relationship-group>small{display:block;margin-top:8px;color:var(--muted);font-size:10px}
+.relationship-list{display:grid;gap:7px;margin-top:10px}
+.relationship-row{display:flex;align-items:center;gap:7px;padding:9px 10px;border:1px solid #edf0f5;border-radius:9px}
+.relationship-identity{display:grid;flex:1;min-width:0}
+.relationship-identity>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700}
+.relationship-identity>small,.relationship-empty{color:var(--muted);font-size:10px}
+.relationship-action{padding:6px 9px;border:1px solid var(--line);border-radius:16px;background:#fff;color:#4e5362;font:inherit;font-size:9px;font-weight:700;cursor:pointer}
+.relationship-action:disabled{cursor:not-allowed;opacity:.5}
+.relationship-action:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
 .community-post-actions .is-liked,.community-like-button[aria-pressed="true"]{border-color:#ffd7e4;background:#fff1f6;color:#c83f77}
 .community-reply-panel{margin-top:12px;padding:12px 0 0;border-top:1px solid #edf0f5}
 .community-reply-panel[hidden]{display:none}
@@ -469,7 +482,24 @@ a{color:inherit}
 .avatar-choices input{position:absolute;opacity:0;pointer-events:none}
 .avatar-choices label>span:first-of-type{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#edf1ff;font-size:20px}
 .avatar-choices .avatar-choice-google{font-family:Arial,sans-serif;font-weight:bold;color:#4285f4}
+.avatar-choices .avatar-custom-preview{overflow:hidden;font-size:11px}
+.avatar-custom-preview img{width:100%;height:100%;object-fit:cover}
 .avatar-choices label:focus-within{outline:2px solid var(--blue);outline-offset:2px}
+.avatar-upload-settings{display:grid;justify-items:start;gap:7px;margin:-4px 0 16px}
+.avatar-upload-button{display:inline-flex;align-items:center;cursor:pointer}
+#avatar-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
+.avatar-upload-settings>small{color:var(--muted);font-size:10px}
+.debug-panel[hidden]{display:none}
+.debug-panel p{margin:7px 0;font-size:11px}
+.debug-panel pre{max-height:180px;overflow:auto;padding:10px;border-radius:7px;background:#f4f5f8;white-space:pre-wrap;overflow-wrap:anywhere;font-size:10px}
+.avatar-cropper{display:grid;gap:10px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#f8f9fc}
+.avatar-cropper[hidden]{display:none}
+.avatar-cropper>p{margin:0;font-size:11px}
+.avatar-crop-window{position:relative;width:min(100%,240px);aspect-ratio:1;overflow:hidden;border-radius:50%;background:#e9edff}
+.avatar-crop-window img{position:absolute;max-width:none}
+.avatar-cropper>label{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;gap:10px;font-size:11px}
+.avatar-cropper input[type=range]{width:100%;accent-color:var(--blue)}
+.avatar-crop-actions{display:flex;flex-wrap:wrap;gap:8px}
 .settings-field{display:grid;gap:6px;margin-bottom:14px}
 .settings-field>span{font-size:11px;font-weight:bold}
 .settings-field input,.settings-field textarea{width:100%;padding:11px 12px;border:1px solid #dfe2ec;border-radius:8px;font:inherit;font-size:12px}

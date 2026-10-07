@@ -32,14 +32,14 @@
     <div class="settings-title"><p class="eyebrow">YOUR ACCOUNT</p><h1>プロフィール・設定</h1><p>プロフィールの編集や、自分の投稿・返信履歴を確認できます。</p></div>
     <div class="settings-login">
       <span class="google-g" aria-hidden="true">G</span>
-      <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">Firebaseに接続しています…</small></div>
+      <div><b>ログインして設定を管理</b><small data-auth-status role="status" aria-live="polite">接続を確認しています…</small></div>
       <button class="button button-google" type="button" data-firebase-login disabled><span class="google-g" aria-hidden="true">G</span><span data-auth-button-label>ログイン機能を確認中</span></button>
     </div>
     <form class="settings-card" id="profile-settings-form">
       <div class="settings-card-heading"><div><p class="eyebrow">PROFILE</p><h2>プロフィール</h2></div><span class="api-badge" id="profile-save-state"><i></i> ログインが必要です</span></div>
       <div class="avatar-setting">
         <div class="avatar-preview" id="avatar-preview" aria-label="プロフィール画像プレビュー">K</div>
-        <small>アイコンは無料枠のFirestoreに設定IDのみ保存します。画像のアップロードやStorageは使いません。</small>
+        <small>画像は端末内で正方形に切り抜いて縮小して保存し、元画像は送信しません。</small>
       </div>
       <fieldset class="avatar-choices" aria-label="プロフィールアイコン">
         <legend>プロフィールアイコン</legend>
@@ -50,7 +50,24 @@
         <label><input type="radio" name="profile-avatar" value="rabbit" disabled><span>🐰</span><span>うさぎ</span></label>
         <label><input type="radio" name="profile-avatar" value="bear" disabled><span>🐻</span><span>くま</span></label>
         <label><input type="radio" name="profile-avatar" value="flower" disabled><span>🌸</span><span>花</span></label>
+        <label><input type="radio" name="profile-avatar" value="custom" disabled><span class="avatar-custom-preview" id="avatar-custom-choice">画像</span><span>自分の画像</span></label>
       </fieldset>
+      <div class="avatar-upload-settings">
+        <label class="button button-secondary avatar-upload-button" for="avatar-file-input">PNG / JPG画像を選ぶ</label>
+        <input id="avatar-file-input" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" disabled>
+        <small>アップロード画像は端末内で256×256pxに縮小し、保存サイズを最大約210KBに抑えます。</small>
+      </div>
+      <section class="avatar-cropper" id="avatar-cropper" aria-label="アイコン画像の切り抜き" hidden>
+        <p>丸い範囲がアイコンになります。拡大と位置を調整してください。</p>
+        <div class="avatar-crop-window"><img id="avatar-crop-image" alt="切り抜き範囲のプレビュー"></div>
+        <label>拡大 <input id="avatar-crop-zoom" type="range" min="1" max="3" step="0.05" value="1"></label>
+        <label>左右 <input id="avatar-crop-x" type="range" min="-100" max="100" value="0"></label>
+        <label>上下 <input id="avatar-crop-y" type="range" min="-100" max="100" value="0"></label>
+        <div class="avatar-crop-actions">
+          <button class="button button-secondary" id="avatar-crop-cancel" type="button">キャンセル</button>
+          <button class="button button-primary" id="avatar-crop-apply" type="button">この範囲をアイコンにする</button>
+        </div>
+      </section>
       <label class="settings-field"><span>ユーザー名</span><input id="profile-username" type="text" maxlength="24" placeholder="英数字と _ を使用（3〜24文字）" pattern="[A-Za-z0-9_]{3,24}" required disabled></label>
       <label class="settings-field"><span>表示名</span><input id="profile-display-name" type="text" maxlength="40" placeholder="投稿に表示する名前" required disabled></label>
       <label class="settings-field"><span>自己紹介</span><textarea id="profile-bio" rows="3" maxlength="160" placeholder="プロフィールに表示する自己紹介（160文字以内）" disabled></textarea></label>
@@ -61,6 +78,31 @@
       <div class="settings-card-heading"><div><p class="eyebrow">YOUR ACTIVITY</p><h2 id="my-posts-heading">自分の投稿・返信履歴</h2></div></div>
       <small id="profile-posts-status" class="feature-pending" role="status" aria-live="polite">Googleログインすると投稿履歴を表示します。</small>
       <div class="profile-post-history" id="profile-post-history"></div>
+    </section>
+    <section class="settings-card" id="social-relationships" aria-labelledby="social-relationships-heading">
+      <div class="settings-card-heading"><div><p class="eyebrow">YOUR COMMUNITY</p><h2 id="social-relationships-heading">フォロー・フォロワー・ブロック</h2></div></div>
+      <small id="relationships-status" class="feature-pending" role="status" aria-live="polite">ログインすると利用できます。</small>
+      <details class="relationship-group" open>
+        <summary>フォロー中 <span id="following-count"></span></summary>
+        <div class="relationship-list" id="following-list"></div>
+      </details>
+      <details class="relationship-group">
+        <summary>フォロワー <span id="followers-count"></span></summary>
+        <div class="relationship-list" id="followers-list"></div>
+      </details>
+      <details class="relationship-group">
+        <summary>ブロック中 <span id="blocked-count"></span></summary>
+        <small>現在は最大10人までブロックできます。サブスクの利用確認に対応した後、対象プランは最大50人になります。</small>
+        <div class="relationship-list" id="blocked-list"></div>
+      </details>
+    </section>
+    <section class="settings-card debug-panel" id="debug-panel" aria-labelledby="debug-panel-heading" hidden>
+      <div class="settings-card-heading"><div><p class="eyebrow">PRIVATE DIAGNOSTICS</p><h2 id="debug-panel-heading">デバッグ情報</h2></div></div>
+      <p id="debug-uid-check"></p>
+      <p id="debug-post-history"></p>
+      <p id="debug-reply-history"></p>
+      <pre id="debug-history-error" hidden></pre>
+      <small>この画面は表示確認用です。権限やセキュリティの保護機能ではありません。</small>
     </section>
     <section class="settings-card x-account-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SOCIAL CONNECTION</p><h2>Xアカウント連携</h2></div><span class="api-badge"><i></i> OAuth準備中</span></div>
@@ -106,6 +148,7 @@
   <script src="script.js"></script>
   <script type="module" src="firebase-auth.js"></script>
   <script type="module" src="settings-profile.js"></script>
+  <script type="module" src="social-relationships.js"></script>
   <script type="module" src="settings-notifications.js"></script>
 </body>
 </html>

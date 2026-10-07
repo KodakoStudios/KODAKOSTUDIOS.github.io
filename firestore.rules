@@ -5,9 +5,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function blockedEitherWay(firstUid, secondUid) {
+      return exists(/databases/$(database)/documents/profiles/$(firstUid)/blocked/$(secondUid))
+        || exists(/databases/$(database)/documents/profiles/$(secondUid)/blocked/$(firstUid));
+    }
+
     function validProfile(data, uid) {
       return data.keys().hasAll(['username', 'displayName', 'bio', 'updatedAt'])
-        && data.keys().hasOnly(['username', 'displayName', 'bio', 'avatarId', 'updatedAt'])
+        && data.keys().hasOnly(['username', 'displayName', 'bio', 'avatarId', 'customAvatarDataUrl', 'updatedAt'])
         && data.username is string
         && data.username.matches('^[a-z0-9_]{3,24}$')
         && data.displayName is string
@@ -15,7 +20,9 @@ service cloud.firestore {
         && data.displayName.size() <= 40
         && data.bio is string
         && data.bio.size() <= 160
-        && (!('avatarId' in data) || data.avatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower'])
+        && (!('avatarId' in data) || data.avatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower', 'custom'])
+        && (!('customAvatarDataUrl' in data) || (data.customAvatarDataUrl is string && data.customAvatarDataUrl.size() <= 280000 && data.customAvatarDataUrl.matches('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$')))
+        && (!('avatarId' in data) || data.avatarId != 'custom' || 'customAvatarDataUrl' in data)
         && data.updatedAt == request.time
         && getAfter(/databases/$(database)/documents/usernames/$(data.username)).data.uid == uid;
     }
@@ -33,13 +40,86 @@ service cloud.firestore {
           && request.auth.uid == uid
           && targetUid != uid
           && exists(/databases/$(database)/documents/profiles/$(targetUid))
+          && !exists(/databases/$(database)/documents/profiles/$(uid)/blocked/$(targetUid))
+          && !exists(/databases/$(database)/documents/profiles/$(targetUid)/blocked/$(uid))
+          && existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/followers/$(uid))
           && request.resource.data.keys().hasAll(['uid', 'createdAt'])
           && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
           && request.resource.data.uid == targetUid
           && request.resource.data.createdAt == request.time;
         allow delete: if signedIn()
-          && request.auth.uid == uid
+          && (request.auth.uid == uid || (request.auth.uid == targetUid && existsAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)/blocked/$(uid))))
+          && !existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/followers/$(uid))
           && resource.data.uid == targetUid;
+        allow update: if false;
+      }
+
+      match /followers/{followerUid} {
+        allow read: if signedIn() && (request.auth.uid == uid || request.auth.uid == followerUid);
+        allow create: if signedIn()
+          && request.auth.uid == followerUid
+          && existsAfter(/databases/$(database)/documents/profiles/$(followerUid)/following/$(uid))
+          && request.resource.data.keys().hasAll(['uid', 'targetUid', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['uid', 'targetUid', 'createdAt'])
+          && request.resource.data.uid == followerUid
+          && request.resource.data.targetUid == uid
+          && request.resource.data.createdAt == request.time;
+        allow delete: if signedIn()
+          && (request.auth.uid == followerUid || (request.auth.uid == uid && existsAfter(/databases/$(database)/documents/profiles/$(uid)/blocked/$(followerUid))))
+          && !existsAfter(/databases/$(database)/documents/profiles/$(followerUid)/following/$(uid))
+          && resource.data.uid == followerUid;
+        allow update: if false;
+      }
+
+      match /blocked/{targetUid} {
+        allow read: if signedIn() && (request.auth.uid == uid || request.auth.uid == targetUid);
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && targetUid != uid
+          && exists(/databases/$(database)/documents/profiles/$(targetUid))
+          && request.resource.data.keys().hasAll(['targetUid', 'slotId', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['targetUid', 'slotId', 'createdAt'])
+          && request.resource.data.targetUid == targetUid
+          && request.resource.data.slotId.matches('^0[0-9]$')
+          && getAfter(/databases/$(database)/documents/profiles/$(uid)/blockSlots/$(request.resource.data.slotId)).data.targetUid == targetUid
+          && existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/blockedBy/$(uid))
+          && request.resource.data.createdAt == request.time;
+        allow delete: if signedIn()
+          && request.auth.uid == uid
+          && !existsAfter(/databases/$(database)/documents/profiles/$(targetUid)/blockedBy/$(uid))
+          && !existsAfter(/databases/$(database)/documents/profiles/$(uid)/blockSlots/$(resource.data.slotId));
+        allow update: if false;
+      }
+
+      match /blockedBy/{blockerUid} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn()
+          && request.auth.uid == blockerUid
+          && existsAfter(/databases/$(database)/documents/profiles/$(blockerUid)/blocked/$(uid))
+          && request.resource.data.keys().hasAll(['blockerUid', 'targetUid', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['blockerUid', 'targetUid', 'createdAt'])
+          && request.resource.data.blockerUid == blockerUid
+          && request.resource.data.targetUid == uid
+          && request.resource.data.createdAt == request.time;
+        allow delete: if signedIn()
+          && request.auth.uid == blockerUid
+          && !existsAfter(/databases/$(database)/documents/profiles/$(blockerUid)/blocked/$(uid));
+        allow update: if false;
+      }
+
+      match /blockSlots/{slotId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && slotId.matches('^0[0-9]$')
+          && request.resource.data.keys().hasAll(['targetUid', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['targetUid', 'createdAt'])
+          && existsAfter(/databases/$(database)/documents/profiles/$(uid)/blocked/$(request.resource.data.targetUid))
+          && getAfter(/databases/$(database)/documents/profiles/$(uid)/blocked/$(request.resource.data.targetUid)).data.slotId == slotId
+          && request.resource.data.createdAt == request.time;
+        allow delete: if signedIn()
+          && request.auth.uid == uid
+          && !existsAfter(/databases/$(database)/documents/profiles/$(uid)/blocked/$(resource.data.targetUid));
         allow update: if false;
       }
 
@@ -124,6 +204,10 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    match /{path=**}/replies/{replyId} {
+      allow read: if true;
+    }
+
     match /communityPosts/{postId} {
       allow read: if true;
       allow create: if signedIn()
@@ -133,7 +217,7 @@ service cloud.firestore {
         && request.resource.data.authorName is string
         && request.resource.data.authorName.size() > 0
         && request.resource.data.authorName.size() <= 40
-        && (!('authorAvatarId' in request.resource.data) || request.resource.data.authorAvatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower'])
+        && (!('authorAvatarId' in request.resource.data) || request.resource.data.authorAvatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower', 'custom'])
         && (!('authorAvatarUrl' in request.resource.data) || (request.resource.data.authorAvatarId == 'google' && request.resource.data.authorAvatarUrl is string && request.resource.data.authorAvatarUrl.size() <= 2048 && request.resource.data.authorAvatarUrl.matches('^https://lh[0-9]+\\.googleusercontent\\.com/.*$')))
         && (!('authorUsername' in request.resource.data) || (request.resource.data.authorUsername is string && request.resource.data.authorUsername.matches('^[a-z0-9_]{3,24}$')))
         && (!('authorUsername' in request.resource.data) || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.username == request.resource.data.authorUsername)
@@ -151,6 +235,7 @@ service cloud.firestore {
         allow create: if signedIn()
           && request.auth.uid == uid
           && exists(/databases/$(database)/documents/communityPosts/$(postId))
+          && !blockedEitherWay(get(/databases/$(database)/documents/communityPosts/$(postId)).data.uid, request.auth.uid)
           && request.resource.data.keys().hasAll(['uid', 'createdAt'])
           && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
           && request.resource.data.uid == uid
@@ -165,13 +250,14 @@ service cloud.firestore {
         allow read: if true;
         allow create: if signedIn()
           && exists(/databases/$(database)/documents/communityPosts/$(postId))
+          && !blockedEitherWay(get(/databases/$(database)/documents/communityPosts/$(postId)).data.uid, request.auth.uid)
           && request.resource.data.keys().hasAll(['uid', 'authorName', 'content', 'createdAt'])
           && request.resource.data.keys().hasOnly(['uid', 'authorName', 'authorAvatarId', 'authorAvatarUrl', 'content', 'createdAt'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.authorName is string
           && request.resource.data.authorName.size() > 0
           && request.resource.data.authorName.size() <= 40
-          && (!('authorAvatarId' in request.resource.data) || request.resource.data.authorAvatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower'])
+          && (!('authorAvatarId' in request.resource.data) || request.resource.data.authorAvatarId in ['google', 'octopus', 'star', 'cat', 'rabbit', 'bear', 'flower', 'custom'])
           && (!('authorAvatarUrl' in request.resource.data) || (request.resource.data.authorAvatarId == 'google' && request.resource.data.authorAvatarUrl is string && request.resource.data.authorAvatarUrl.size() <= 2048 && request.resource.data.authorAvatarUrl.matches('^https://lh[0-9]+\\.googleusercontent\\.com/.*$')))
           && request.resource.data.content is string
           && request.resource.data.content.size() > 0

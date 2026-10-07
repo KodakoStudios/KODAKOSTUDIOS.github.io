@@ -11,6 +11,7 @@ export const PROFILE_AVATARS = Object.freeze({
   rabbit: "🐰",
   bear: "🐻",
   flower: "🌸",
+  custom: "",
 });
 
 export const getProfileAvatarId = (profile) =>

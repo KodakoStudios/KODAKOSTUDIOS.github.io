@@ -2,6 +2,7 @@ import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
 import { db, getDisplayName, getProfileAvatarId, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
+import { blockUser, followUser, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
 
 const postsRef = collection(db, "communityPosts");
 const form = document.getElementById("fan-comment-form");
@@ -18,15 +19,21 @@ let currentUser = null;
 let currentDisplayName = "";
 let currentUsername = "";
 let currentAvatarId = "google";
+let currentCustomAvatarDataUrl = "";
 let followingIds = new Set();
+let blockedIds = new Set();
+let blockedByIds = new Set();
 let activeFilter = "all";
 let submitting = false;
 let followUnsubscribe = null;
+let blockedUnsubscribe = null;
+let blockedByUnsubscribe = null;
 let postUnsubscribe = null;
 let postSnapshot = null;
 const likeUnsubscribers = new Map();
 const replyUnsubscribers = new Map();
 const followedPosts = new Set();
+const profileAvatarCache = new Map();
 
 const setPostStatus = (message, isError = false) => {
   postStatus.textContent = message;
@@ -34,21 +41,24 @@ const setPostStatus = (message, isError = false) => {
 };
 
 const firestoreErrorMessage = (error) => {
+  if (error.code === "relationship-blocked") return "ブロック関係があるため、このユーザーはフォローできません。";
+  if (error.code === "relationship-block-limit") return `ブロックできるのは最大${MAX_BLOCKED_USERS}人です。`;
   if (error.code === "permission-denied") return "操作できません。Firebase Consoleへ最新のFirestoreルールを公開してください。";
   if (error.code === "unavailable" || error.code === "network-request-failed") return "Firebaseへ接続できません。ネットワークを確認して再度お試しください。";
   if (error.code === "failed-precondition") return "Firebaseのデータベース設定を確認してください。";
   return `処理に失敗しました（${error.code || "unknown"}）。時間をおいて再度お試しください。`;
 };
 
-const createAvatar = (avatarId, avatarUrl, fallbackName, className) => {
+const createAvatar = (avatarId, avatarUrl, fallbackName, className, customAvatarDataUrl = "") => {
   const element = document.createElement("span");
   element.className = className;
   element.setAttribute("aria-hidden", "true");
-  if (avatarId === "google" && avatarUrl) {
+  const imageUrl = avatarId === "custom" ? customAvatarDataUrl : avatarId === "google" ? avatarUrl : "";
+  if (imageUrl) {
     const image = document.createElement("img");
-    image.src = avatarUrl;
+    image.src = imageUrl;
     image.alt = "";
-    image.referrerPolicy = "no-referrer";
+    if (imageUrl.startsWith("https://")) image.referrerPolicy = "no-referrer";
     element.append(image);
   } else {
     element.textContent = PROFILE_AVATARS[avatarId] || (fallbackName || "K").trim().charAt(0).toUpperCase() || "K";
@@ -56,8 +66,25 @@ const createAvatar = (avatarId, avatarUrl, fallbackName, className) => {
   return element;
 };
 
+const loadCustomAvatar = (element, uid, avatarId) => {
+  if (avatarId !== "custom" || !uid) return;
+  if (!profileAvatarCache.has(uid)) {
+    profileAvatarCache.set(uid, getUserProfile(uid).catch((error) => {
+      console.error("Community profile avatar could not be loaded:", error);
+      return null;
+    }));
+  }
+  profileAvatarCache.get(uid).then((profile) => {
+    if (!element.isConnected || !profile?.customAvatarDataUrl) return;
+    const image = document.createElement("img");
+    image.src = profile.customAvatarDataUrl;
+    image.alt = "";
+    element.replaceChildren(image);
+  });
+};
+
 const renderComposerAvatar = () => {
-  const rendered = createAvatar(currentAvatarId, currentUser?.photoURL, currentDisplayName, "fan-avatar");
+  const rendered = createAvatar(currentAvatarId, currentUser?.photoURL, currentDisplayName, "fan-avatar", currentCustomAvatarDataUrl);
   avatar.replaceChildren(...rendered.childNodes);
 };
 
@@ -81,7 +108,9 @@ const createNotification = async (recipientUid, notification) => {
 const createReply = (reply) => {
   const item = document.createElement("div");
   item.className = "community-reply";
-  item.append(createAvatar(reply.authorAvatarId, reply.authorAvatarUrl, reply.authorName, "community-avatar"));
+  const replyAvatar = createAvatar(reply.authorAvatarId, reply.authorAvatarUrl, reply.authorName, "community-avatar");
+  loadCustomAvatar(replyAvatar, reply.uid, reply.authorAvatarId);
+  item.append(replyAvatar);
   const content = document.createElement("div");
   const author = document.createElement("b");
   author.textContent = reply.authorName || "Googleユーザー";
@@ -116,7 +145,9 @@ const createPostElement = (postId, post) => {
   heading.className = "community-post-heading";
   const authorGroup = document.createElement("span");
   authorGroup.className = "community-post-author";
-  authorGroup.append(createAvatar(post.authorAvatarId, post.authorAvatarUrl, post.authorName, "community-post-avatar"));
+  const postAvatar = createAvatar(post.authorAvatarId, post.authorAvatarUrl, post.authorName, "community-post-avatar");
+  loadCustomAvatar(postAvatar, post.uid, post.authorAvatarId);
+  authorGroup.append(postAvatar);
   const author = document.createElement("strong");
   author.textContent = post.authorName || "Googleユーザー";
   authorGroup.append(author);
@@ -186,14 +217,14 @@ const createPostElement = (postId, post) => {
     followButton.className = "community-follow-button";
     followButton.dataset.followUid = post.uid;
     followButton.textContent = followingIds.has(post.uid) ? "フォロー中" : "フォロー";
+    followButton.disabled = blockedByIds.has(post.uid);
     followButton.addEventListener("click", async () => {
       followButton.disabled = true;
-      const followRef = doc(db, "profiles", currentUser.uid, "following", post.uid);
       try {
         if (followingIds.has(post.uid)) {
-          await deleteDoc(followRef);
+          await unfollowUser(currentUser.uid, post.uid);
         } else {
-          await setDoc(followRef, { uid: post.uid, createdAt: serverTimestamp() });
+          await followUser(currentUser.uid, post.uid);
           await createNotification(post.uid, {
             type: "follow",
             content: "",
@@ -202,10 +233,35 @@ const createPostElement = (postId, post) => {
       } catch (error) {
         setPostStatus(firestoreErrorMessage(error), true);
       } finally {
-        followButton.disabled = !currentUser;
+        followButton.disabled = !currentUser || blockedByIds.has(post.uid);
       }
     });
     actions.append(followButton);
+  }
+
+  if (currentUser && currentUser.uid !== post.uid) {
+    const blockButton = document.createElement("button");
+    blockButton.type = "button";
+    blockButton.className = "community-block-button";
+    blockButton.textContent = blockedIds.has(post.uid) ? "ブロック解除" : "ブロック";
+    blockButton.disabled = !blockedIds.has(post.uid) && blockedIds.size >= MAX_BLOCKED_USERS;
+    blockButton.addEventListener("click", async () => {
+      blockButton.disabled = true;
+      try {
+        if (blockedIds.has(post.uid)) {
+          await unblockUser(currentUser.uid, post.uid);
+        } else {
+          await blockUser(currentUser.uid, post.uid);
+          setPostStatus(`${post.authorName || "ユーザー"}をブロックしました。投稿とフォロー関係を非表示にします。`);
+        }
+      } catch (error) {
+        setPostStatus(error.code === "relationship-block-limit"
+          ? `ブロックできるのは最大${MAX_BLOCKED_USERS}人です。`
+          : firestoreErrorMessage(error), true);
+        blockButton.disabled = !currentUser || (!blockedIds.has(post.uid) && blockedIds.size >= MAX_BLOCKED_USERS);
+      }
+    });
+    actions.append(blockButton);
   }
 
   const replyPanel = document.createElement("div");
@@ -292,6 +348,7 @@ const renderPosts = () => {
   const fragment = document.createDocumentFragment();
   postSnapshot.forEach((item) => {
     const post = item.data();
+    if (currentUser && post.uid !== currentUser.uid && (blockedIds.has(post.uid) || blockedByIds.has(post.uid))) return;
     if (activeFilter !== "all" && (post.type || "comment") !== activeFilter) return;
     fragment.append(createPostElement(item.id, post));
   });
@@ -328,11 +385,22 @@ onAuthStateChanged(auth, async (user) => {
       currentDisplayName = name;
       currentUsername = profile?.username || "";
       currentAvatarId = getProfileAvatarId(profile);
+      currentCustomAvatarDataUrl = profile?.customAvatarDataUrl || "";
+      if (followUnsubscribe) followUnsubscribe();
+      if (blockedUnsubscribe) blockedUnsubscribe();
+      if (blockedByUnsubscribe) blockedByUnsubscribe();
       userLabel.textContent = `${name} としてログイン中`;
       renderComposerAvatar();
-      if (followUnsubscribe) followUnsubscribe();
       followUnsubscribe = onSnapshot(collection(db, "profiles", user.uid, "following"), (snapshot) => {
         followingIds = new Set(snapshot.docs.map((item) => item.id));
+        if (postSnapshot) renderPosts();
+      }, (error) => setPostStatus(firestoreErrorMessage(error), true));
+      blockedUnsubscribe = onSnapshot(collection(db, "profiles", user.uid, "blocked"), (snapshot) => {
+        blockedIds = new Set(snapshot.docs.map((item) => item.id));
+        if (postSnapshot) renderPosts();
+      }, (error) => setPostStatus(firestoreErrorMessage(error), true));
+      blockedByUnsubscribe = onSnapshot(collection(db, "profiles", user.uid, "blockedBy"), (snapshot) => {
+        blockedByIds = new Set(snapshot.docs.map((item) => item.id));
         if (postSnapshot) renderPosts();
       }, (error) => setPostStatus(firestoreErrorMessage(error), true));
       setPostStatus("投稿・コメント・いいね・フォローが利用できます。");
@@ -343,9 +411,16 @@ onAuthStateChanged(auth, async (user) => {
     currentDisplayName = "";
     currentUsername = "";
     currentAvatarId = "google";
+    currentCustomAvatarDataUrl = "";
     followingIds = new Set();
+    blockedIds = new Set();
+    blockedByIds = new Set();
     if (followUnsubscribe) followUnsubscribe();
+    if (blockedUnsubscribe) blockedUnsubscribe();
+    if (blockedByUnsubscribe) blockedByUnsubscribe();
     followUnsubscribe = null;
+    blockedUnsubscribe = null;
+    blockedByUnsubscribe = null;
     userLabel.textContent = "Googleログインが必要です";
     renderComposerAvatar();
     setPostStatus("投稿・コメント・いいね・フォローにはGoogleログインが必要です。");
@@ -405,6 +480,8 @@ form.addEventListener("submit", async (event) => {
 window.addEventListener("pagehide", () => {
   if (postUnsubscribe) postUnsubscribe();
   if (followUnsubscribe) followUnsubscribe();
+  if (blockedUnsubscribe) blockedUnsubscribe();
+  if (blockedByUnsubscribe) blockedByUnsubscribe();
   likeUnsubscribers.forEach((unsubscribe) => unsubscribe());
   replyUnsubscribers.forEach((unsubscribe) => unsubscribe());
 });
