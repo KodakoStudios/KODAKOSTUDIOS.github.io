@@ -4,6 +4,7 @@ import { auth } from "./firebase-auth.js";
 import { db, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
 import { blockUser, followUser, getBlockedUserLimit, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
 import { DEVELOPER_UID } from "./developer-mode.js";
+import { createVerifiedMark } from "./verified-mark.js";
 
 const profileName = document.getElementById("public-profile-name");
 const usernameLabel = document.getElementById("public-profile-username");
@@ -161,7 +162,9 @@ const loadProfile = async () => {
     if (!targetUid) throw new Error("profile-not-found");
     targetProfile = await getUserProfile(targetUid);
     if (!targetProfile) throw new Error("profile-not-found");
-    profileName.textContent = targetProfile.displayName || "ユーザー";
+    profileName.replaceChildren(document.createTextNode(targetProfile.displayName || "ユーザー"));
+    const profileVerifiedMark = createVerifiedMark(targetUid);
+    if (profileVerifiedMark) profileName.append(" ", profileVerifiedMark);
     usernameLabel.textContent = targetProfile.username ? `@${targetProfile.username}` : "";
     bioLabel.textContent = targetProfile.bio || "自己紹介はありません。";
     renderAvatar();

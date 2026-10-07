@@ -36,6 +36,7 @@
       <a href="fan-community.html">ファン広場</a>
       <a href="index.html#support">活動支援</a>
       <a href="settings.html">プロフィール・設定</a>
+      <a href="verified.html">金のチェックマーク</a>
       <a href="https://x.com/KodakoStudios" target="_blank" rel="noopener noreferrer">X <span>↗</span></a>
       <a href="https://www.instagram.com/kodako_studios/" target="_blank" rel="noopener noreferrer">Instagram <span>↗</span></a>
       <a href="https://www.tiktok.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">TikTok <span>↗</span></a>
@@ -204,12 +205,25 @@
           <p>毎月の継続支援で、スタジオの活動を応援できます。</p>
           <button class="button button-subscribe" type="button" disabled>月額サブスクを始める</button>
           <small>定期決済サービスの設定後に利用できます。</small>
+          <small id="support-subscription-status" role="status" aria-live="polite"></small>
         </aside>
       </div>
       <div class="support-grid">
         <a class="support-card amazon-card" href="https://www.amazon.jp/hz/wishlist/ls/L363S1KFPWRE?ref_=wl_share" target="_blank" rel="noopener noreferrer"><span class="support-icon">A</span><span><b>Amazonほしい物リスト</b><small>制作活動をアイテムで応援</small></span><i aria-hidden="true">↗</i></a>
         <a class="support-card suzuri-card" href="https://suzuri.jp/KodakoOfficial" target="_blank" rel="noopener noreferrer"><span class="support-icon">K</span><span><b>公式ショップ（SUZURI）</b><small>グッズをチェック</small></span><i aria-hidden="true">↗</i></a>
       </div>
+      <section class="supporters-section" aria-labelledby="supporters-heading">
+        <div class="section-heading"><div><p class="eyebrow">COMMUNITY SUPPORT</p><h3 id="supporters-heading">支援リスト</h3></div><p id="supporters-status" role="status" aria-live="polite">支援情報を読み込んでいます…</p></div>
+        <p class="supporters-test-notice">表示される開発用記録はテストデータです。実際の決済・支援を示すものではありません。</p>
+        <div id="supporters-announcement" class="supporters-announcement" aria-live="polite"></div>
+        <ol id="supporters-list" class="supporters-list"></ol>
+        <button class="button button-secondary" id="supporters-more" type="button" hidden>もっと表示する</button>
+        <nav id="supporters-pagination" class="supporters-pagination" aria-label="支援リストのページ" hidden>
+          <button class="button button-light" id="supporters-previous" type="button">前へ</button>
+          <span id="supporters-page-status"></span>
+          <button class="button button-light" id="supporters-next" type="button">次へ</button>
+        </nav>
+      </section>
     </section>
   </main>
 
@@ -230,6 +244,7 @@
   <script src="youtube-config.js"></script>
   <script src="youtube-api.js"></script>
   <script type="module" src="firebase-auth.js"></script>
+  <script type="module" src="support-home.js"></script>
   <script type="module" src="youtube-recommendations.js"></script>
 </body>
 </html>

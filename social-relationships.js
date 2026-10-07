@@ -4,6 +4,7 @@ import { auth } from "./firebase-auth.js";
 import { db, getUserProfile } from "./social-data.js";
 import { blockUser, followUser, getBlockedUserLimit, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
 import { DEVELOPER_UID } from "./developer-mode.js";
+import { createVerifiedMark } from "./verified-mark.js";
 
 const status = document.getElementById("relationships-status");
 const followingList = document.getElementById("following-list");
@@ -69,6 +70,8 @@ const renderRelationshipList = async (list, ids, kind) => {
     row.className = "relationship-row";
     const name = document.createElement("span");
     name.textContent = profile?.displayName || "ユーザー";
+    const verifiedMark = createVerifiedMark(uid);
+    if (verifiedMark) name.append(" ", verifiedMark);
     const username = document.createElement("small");
     username.textContent = profile?.username ? `@${profile.username}` : "";
     const profileLink = document.createElement("a");

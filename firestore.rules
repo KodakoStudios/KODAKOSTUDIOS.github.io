@@ -221,6 +221,35 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    match /supportEvents/{eventId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == developerUid()
+        && request.resource.data.keys().hasAll(['donorName', 'amountYen', 'testMode', 'createdByUid', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['donorName', 'amountYen', 'testMode', 'createdByUid', 'createdAt', 'updatedAt'])
+        && request.resource.data.donorName is string
+        && request.resource.data.donorName.size() > 0
+        && request.resource.data.donorName.size() <= 40
+        && request.resource.data.amountYen is int
+        && request.resource.data.amountYen > 0
+        && request.resource.data.amountYen <= 100000000
+        && request.resource.data.testMode == true
+        && request.resource.data.createdByUid == developerUid()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if signedIn()
+        && request.auth.uid == developerUid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['donorName', 'amountYen', 'updatedAt'])
+        && request.resource.data.donorName is string
+        && request.resource.data.donorName.size() > 0
+        && request.resource.data.donorName.size() <= 40
+        && request.resource.data.amountYen is int
+        && request.resource.data.amountYen > 0
+        && request.resource.data.amountYen <= 100000000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if signedIn() && request.auth.uid == developerUid();
+    }
+
     match /communityPosts/{postId} {
       allow read: if true;
       allow create: if signedIn()
@@ -241,8 +270,13 @@ service cloud.firestore {
         && request.resource.data.type == 'comment'
         && request.resource.data.content.size() > 0
         && request.resource.data.createdAt == request.time;
-      allow update: if false;
-      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if signedIn()
+        && request.auth.uid == developerUid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content'])
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 5000;
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || request.auth.uid == developerUid());
 
       match /likes/{uid} {
         allow read: if true;
@@ -255,7 +289,7 @@ service cloud.firestore {
           && request.resource.data.uid == uid
           && request.resource.data.createdAt == request.time;
         allow delete: if signedIn()
-          && request.auth.uid == uid
+          && (request.auth.uid == uid || request.auth.uid == developerUid())
           && resource.data.uid == uid;
         allow update: if false;
       }
@@ -279,7 +313,7 @@ service cloud.firestore {
             || (request.auth.uid == developerUid() && request.resource.data.content.size() <= 5000))
           && request.resource.data.createdAt == request.time;
         allow update: if false;
-        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+        allow delete: if signedIn() && (resource.data.uid == request.auth.uid || request.auth.uid == developerUid());
       }
     }
   }

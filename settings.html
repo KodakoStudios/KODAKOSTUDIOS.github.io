@@ -25,7 +25,7 @@
     </form>
     <button class="menu-toggle" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="site-menu"><span></span><span></span><span></span></button>
     <nav class="menu-panel" id="site-menu" aria-label="サイトメニュー" hidden>
-      <a href="about.html">KODAKO STUDIOSとは？</a><a href="index.html#characters">キャラクター</a><a href="index.html#videos">YouTube動画</a><a href="index.html#community">公式SNS・Discord</a><a href="index.html#support">活動支援</a><a href="settings.html">プロフィール・設定</a><a href="https://x.com/KodakoStudios" target="_blank" rel="noopener noreferrer">X <span>↗</span></a><a href="https://www.instagram.com/kodako_studios/" target="_blank" rel="noopener noreferrer">Instagram <span>↗</span></a><a href="https://www.tiktok.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">TikTok <span>↗</span></a><a href="https://www.threads.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">Threads <span>↗</span></a><a href="https://www.facebook.com/profile.php?id=61554117201107" target="_blank" rel="noopener noreferrer">Facebook <span>↗</span></a><a href="https://discord.gg/fH2w4ce4Pd" target="_blank" rel="noopener noreferrer">Discord <span>↗</span></a><a href="https://www.amazon.jp/hz/wishlist/ls/L363S1KFPWRE?ref_=wl_share" target="_blank" rel="noopener noreferrer">Amazon支援リスト <span>↗</span></a><a href="https://suzuri.jp/KodakoOfficial" target="_blank" rel="noopener noreferrer">公式ショップ（SUZURI）<span>↗</span></a><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a>
+      <a href="about.html">KODAKO STUDIOSとは？</a><a href="index.html#characters">キャラクター</a><a href="index.html#videos">YouTube動画</a><a href="index.html#community">公式SNS・Discord</a><a href="index.html#support">活動支援</a><a href="settings.html">プロフィール・設定</a><a href="verified.html">金のチェックマーク</a><a href="https://x.com/KodakoStudios" target="_blank" rel="noopener noreferrer">X <span>↗</span></a><a href="https://www.instagram.com/kodako_studios/" target="_blank" rel="noopener noreferrer">Instagram <span>↗</span></a><a href="https://www.tiktok.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">TikTok <span>↗</span></a><a href="https://www.threads.com/@kodakoofficial" target="_blank" rel="noopener noreferrer">Threads <span>↗</span></a><a href="https://www.facebook.com/profile.php?id=61554117201107" target="_blank" rel="noopener noreferrer">Facebook <span>↗</span></a><a href="https://discord.gg/fH2w4ce4Pd" target="_blank" rel="noopener noreferrer">Discord <span>↗</span></a><a href="https://www.amazon.jp/hz/wishlist/ls/L363S1KFPWRE?ref_=wl_share" target="_blank" rel="noopener noreferrer">Amazon支援リスト <span>↗</span></a><a href="https://suzuri.jp/KodakoOfficial" target="_blank" rel="noopener noreferrer">公式ショップ（SUZURI）<span>↗</span></a><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a>
     </nav>
   </header>
   <main class="settings-main">
@@ -123,9 +123,26 @@
       <label class="settings-field"><span>支払い済み金額（テスト表示・円）</span>
         <input id="developer-paid-amount" type="number" min="0" max="100000000" step="1" value="0">
       </label>
+      <small>前回保存した金額から変更して保存すると、その金額のテスト記録をホームの支援リストへ追加します。</small>
       <label class="toggle-setting"><span><b>テスト用に上限を拡張</b><small>ブロック上限を50人、投稿・返信を最大5,000文字、自己紹介を最大2,000文字にします。</small></span><input type="checkbox" id="developer-limit-bypass"><i aria-hidden="true"></i></label>
       <small id="developer-mode-status" class="feature-pending" role="status" aria-live="polite">設定はこのブラウザーに保存されます。</small>
       <button class="button button-primary" id="developer-mode-save" type="button">テスト設定を保存</button>
+      <section class="developer-data-tools" aria-labelledby="developer-support-heading">
+        <h3 id="developer-support-heading">支援リスト記録の管理</h3>
+        <form id="developer-support-add-form">
+          <label class="settings-field"><span>表示名</span><input id="developer-support-name" type="text" maxlength="40" required></label>
+          <label class="settings-field"><span>支援額（テスト・円）</span><input id="developer-support-amount" type="number" min="1" max="100000000" step="1" required></label>
+          <button class="button button-secondary" type="submit">テスト記録を追加</button>
+        </form>
+        <small>既存の記録は編集・削除できます。ここで作成・変更した金額も実決済ではありません。</small>
+        <div id="developer-support-records" class="developer-data-list"></div>
+      </section>
+      <section class="developer-data-tools" aria-labelledby="developer-post-heading">
+        <h3 id="developer-post-heading">投稿の管理</h3>
+        <small>最新100件の投稿本文を編集または削除できます。削除した投稿は復元できません。</small>
+        <div id="developer-post-records" class="developer-data-list"></div>
+      </section>
+      <small id="developer-data-status" class="feature-pending" role="status" aria-live="polite"></small>
     </section>
     <section class="settings-card x-account-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SOCIAL CONNECTION</p><h2>Xアカウント連携</h2></div><span class="api-badge"><i></i> OAuth準備中</span></div>
@@ -148,18 +165,18 @@
     </section>
     <section class="settings-card subscription-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">SUBSCRIPTION</p><h2>サブスクリプション</h2></div><span class="api-badge"><i></i> 決済連携準備中</span></div>
-      <p>現在、有効なサブスクリプションはありません。</p>
+      <p id="subscription-settings-status">現在、有効なサブスクリプションはありません。</p>
       <div class="subscription-management">
-        <span><b>月額サブスク</b><small>自動更新状況の確認・キャンセルは、決済サービス連携後に管理できます。</small></span>
+        <span><b>月額サブスク</b><small id="subscription-settings-detail">自動更新状況の確認・キャンセルは、決済サービス連携後に管理できます。</small></span>
         <button class="button button-light" type="button" disabled>契約・自動更新を管理</button>
       </div>
-      <small class="feature-pending">支援ページの月額500円プランは、Stripe連携後に自動更新・解約手続きが可能になります。</small>
+      <small class="feature-pending" id="subscription-settings-note">支援ページの月額500円プランは、Stripe連携後に自動更新・解約手続きが可能になります。</small>
       <a class="text-link" href="index.html#support">支援・サブスクについて見る →</a>
     </section>
     <section class="settings-card ai-filter-settings">
       <div class="settings-card-heading"><div><p class="eyebrow">CONTENT FILTER</p><h2>AIタグ投稿の表示</h2></div><span class="api-badge"><i></i> サブスク限定</span></div>
       <label class="toggle-setting"><span><b>AIタグの付いた投稿を非表示</b><small>サブスクリプション機能の準備中です。</small></span><input type="checkbox" id="ai-filter-toggle" disabled aria-describedby="ai-filter-status"><i aria-hidden="true"></i></label>
-      <small class="feature-pending" id="ai-filter-status">実際のサブスクリプション照合や投稿の絞り込みは行いません。</small>
+      <small class="feature-pending" id="ai-filter-status">Developer Modeでテストサブスクを有効にすると利用できます。</small>
     </section>
   </main>
   <footer class="footer">

@@ -10,6 +10,21 @@ const DEFAULT_OVERRIDES = Object.freeze({
 export const isDeveloper = (userOrUid) =>
   (typeof userOrUid === "string" ? userOrUid : userOrUid?.uid) === DEVELOPER_UID;
 
+export const isDeveloperSubscriptionActive = (userOrUid) =>
+  isDeveloper(userOrUid) && getDeveloperOverrides(userOrUid).subscriptionActive;
+
+export const getDeveloperAIFilter = (userOrUid) => {
+  if (!isDeveloper(userOrUid)) return false;
+  return localStorage.getItem("kodako-developer-ai-filter-v1") === "true";
+};
+
+export const setDeveloperAIFilter = (userOrUid, enabled) => {
+  if (!isDeveloper(userOrUid) || typeof enabled !== "boolean") {
+    throw new Error("Developer Modeではこの設定を変更できません。");
+  }
+  localStorage.setItem("kodako-developer-ai-filter-v1", String(enabled));
+};
+
 export const getDeveloperOverrides = (userOrUid) => {
   if (!isDeveloper(userOrUid)) return DEFAULT_OVERRIDES;
   const saved = localStorage.getItem(STORAGE_KEY);

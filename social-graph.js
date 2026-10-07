@@ -4,7 +4,7 @@ import { DEVELOPER_UID, getDeveloperOverrides, isDeveloper } from "./developer-m
 
 export const MAX_BLOCKED_USERS = 10;
 export const getBlockedUserLimit = (uid) =>
-  isDeveloper(uid) && getDeveloperOverrides(uid).bypassLimits ? 50 : MAX_BLOCKED_USERS;
+  isDeveloper(uid) && (getDeveloperOverrides(uid).subscriptionActive || getDeveloperOverrides(uid).bypassLimits) ? 50 : MAX_BLOCKED_USERS;
 
 const relationshipRef = (uid, collectionName, targetUid) =>
   doc(db, "profiles", uid, collectionName, targetUid);

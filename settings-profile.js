@@ -1,8 +1,8 @@
-import { collection, collectionGroup, doc, limit, onSnapshot, query, runTransaction, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { addDoc, collection, collectionGroup, deleteDoc, doc, getDocs, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, updateDoc, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { auth } from "./firebase-auth.js";
 import { db, getProfileAvatarId, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
-import { getDeveloperOverrides, isDeveloper, saveDeveloperOverrides } from "./developer-mode.js";
+import { getDeveloperAIFilter, getDeveloperOverrides, isDeveloper, isDeveloperSubscriptionActive, saveDeveloperOverrides, setDeveloperAIFilter } from "./developer-mode.js";
 
 const form = document.getElementById("profile-settings-form");
 const usernameInput = document.getElementById("profile-username");
@@ -23,6 +23,7 @@ const saveButton = document.getElementById("profile-save-button");
 const status = document.getElementById("profile-status");
 const saveState = document.getElementById("profile-save-state");
 let currentUser = null;
+let currentDisplayName = "";
 let saving = false;
 let historyUnsubscribers = [];
 let postEntries = new Map();
@@ -40,6 +41,17 @@ const developerPaidAmount = document.getElementById("developer-paid-amount");
 const developerLimitBypass = document.getElementById("developer-limit-bypass");
 const developerModeStatus = document.getElementById("developer-mode-status");
 const developerModeSave = document.getElementById("developer-mode-save");
+const developerSupportAddForm = document.getElementById("developer-support-add-form");
+const developerSupportName = document.getElementById("developer-support-name");
+const developerSupportAmount = document.getElementById("developer-support-amount");
+const developerSupportRecords = document.getElementById("developer-support-records");
+const developerPostRecords = document.getElementById("developer-post-records");
+const developerDataStatus = document.getElementById("developer-data-status");
+const aiFilterToggle = document.getElementById("ai-filter-toggle");
+const aiFilterStatus = document.getElementById("ai-filter-status");
+const subscriptionStatus = document.getElementById("subscription-settings-status");
+const subscriptionDetail = document.getElementById("subscription-settings-detail");
+const subscriptionNote = document.getElementById("subscription-settings-note");
 const debugUidCheck = document.getElementById("debug-uid-check");
 const debugPostHistory = document.getElementById("debug-post-history");
 const debugReplyHistory = document.getElementById("debug-reply-history");
@@ -58,9 +70,175 @@ const updateDebugIdentity = (user) => {
     developerPaidAmount.value = String(overrides.paidAmountYen);
     developerLimitBypass.checked = overrides.bypassLimits;
     bioInput.maxLength = overrides.bypassLimits ? 2000 : 160;
+    updateDeveloperSubscriptionUi(user);
   } catch (error) {
     developerModeStatus.textContent = error.message;
     developerModeStatus.dataset.state = "error";
+  }
+};
+
+const updateDeveloperSubscriptionUi = (user) => {
+  const active = isDeveloperSubscriptionActive(user);
+  const available = Boolean(isDeveloper(user) && active);
+  aiFilterToggle.disabled = !available;
+  aiFilterToggle.checked = available && getDeveloperAIFilter(user);
+  aiFilterStatus.textContent = available
+    ? "開発テスト用サブスクが有効です。このブラウザーではAIタグ投稿を非表示にできます（実決済なし）。"
+    : "AIタグ投稿フィルターは、Developer Modeのテストサブスクが有効な場合に利用できます。";
+  subscriptionStatus.textContent = available
+    ? "サブスク中（Developer Modeテスト）"
+    : "現在、有効なサブスクリプションはありません。";
+  subscriptionDetail.textContent = available
+    ? "テスト状態です。実際の契約・自動更新・決済はありません。"
+    : "自動更新状況の確認・キャンセルは、決済サービス連携後に管理できます。";
+  subscriptionNote.textContent = available
+    ? "テストサブスクにより、このアカウントではブロック上限50人とAIタグ投稿フィルターを試せます。"
+    : "支援ページの月額500円プランは、決済連携後に利用できます。";
+};
+
+const formatDonationDate = (timestamp) =>
+  timestamp?.toDate?.().toLocaleString("ja-JP", { hour12: false }) || "日時未設定";
+
+const setDeveloperDataStatus = (message, isError = false) => {
+  developerDataStatus.textContent = message;
+  developerDataStatus.dataset.state = isError ? "error" : "info";
+};
+
+const makeAdminButton = (label, action, className = "button button-secondary") => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.addEventListener("click", action);
+  return button;
+};
+
+const renderDeveloperSupportRecord = ({ id, data }) => {
+  const item = document.createElement("article");
+  item.className = "developer-data-record";
+  const name = document.createElement("input");
+  name.type = "text";
+  name.maxLength = 40;
+  name.value = data.donorName;
+  name.setAttribute("aria-label", "支援記録の表示名");
+  const amount = document.createElement("input");
+  amount.type = "number";
+  amount.min = "1";
+  amount.max = "100000000";
+  amount.step = "1";
+  amount.value = String(data.amountYen);
+  amount.setAttribute("aria-label", "支援記録の金額（円）");
+  const date = document.createElement("small");
+  date.textContent = `${formatDonationDate(data.createdAt)}（開発テスト・実決済なし）`;
+  const actions = document.createElement("div");
+  actions.append(
+    makeAdminButton("変更を保存", async () => {
+      const donorName = name.value.trim();
+      const amountYen = Number(amount.value);
+      if (!donorName || donorName.length > 40 || !Number.isSafeInteger(amountYen) || amountYen < 1 || amountYen > 100000000) {
+        setDeveloperDataStatus("表示名と金額（1〜100,000,000円の整数）を確認してください。", true);
+        return;
+      }
+      try {
+        await updateDoc(doc(db, "supportEvents", id), { donorName, amountYen, updatedAt: serverTimestamp() });
+        setDeveloperDataStatus("支援テスト記録を更新しました。");
+        await loadDeveloperRecords();
+      } catch (error) {
+        console.error("Developer support record could not be updated:", error);
+        setDeveloperDataStatus(`支援記録を更新できませんでした（${error.code || "unknown"}）。`, true);
+      }
+    }),
+    makeAdminButton("削除", async () => {
+      if (!window.confirm("この支援テスト記録を削除しますか？")) return;
+      try {
+        await deleteDoc(doc(db, "supportEvents", id));
+        setDeveloperDataStatus("支援テスト記録を削除しました。");
+        await loadDeveloperRecords();
+      } catch (error) {
+        console.error("Developer support record could not be deleted:", error);
+        setDeveloperDataStatus(`支援記録を削除できませんでした（${error.code || "unknown"}）。`, true);
+      }
+    }, "button button-light"),
+  );
+  item.append(name, amount, date, actions);
+  return item;
+};
+
+const renderDeveloperPost = ({ id, data }) => {
+  const item = document.createElement("article");
+  item.className = "developer-data-record";
+  const author = document.createElement("small");
+  author.textContent = `${data.authorName || "ユーザー"} ・ ${formatDonationDate(data.createdAt)}`;
+  const content = document.createElement("textarea");
+  content.maxLength = 5000;
+  content.value = data.content || "";
+  content.setAttribute("aria-label", "投稿本文");
+  const actions = document.createElement("div");
+  actions.append(
+    makeAdminButton("本文を保存", async () => {
+      const text = content.value.trim();
+      if (!text || text.length > 5000) {
+        setDeveloperDataStatus("投稿本文は1〜5,000文字で入力してください。", true);
+        return;
+      }
+      try {
+        await updateDoc(doc(db, "communityPosts", id), { content: text });
+        setDeveloperDataStatus("投稿本文を更新しました。");
+      } catch (error) {
+        console.error("Developer post could not be updated:", error);
+        setDeveloperDataStatus(`投稿を更新できませんでした（${error.code || "unknown"}）。`, true);
+      }
+    }),
+    makeAdminButton("投稿を削除", async () => {
+      if (!window.confirm("この投稿を削除しますか？この操作は取り消せません。")) return;
+      try {
+        await deletePostAndChildren(id);
+        await deleteDoc(doc(db, "communityPosts", id));
+        setDeveloperDataStatus("投稿を削除しました。");
+        await loadDeveloperRecords();
+      } catch (error) {
+        console.error("Developer post could not be deleted:", error);
+        setDeveloperDataStatus(`投稿を削除できませんでした（${error.code || "unknown"}）。`, true);
+      }
+    }, "button button-light"),
+  );
+  item.append(author, content, actions);
+  return item;
+};
+
+const deletePostAndChildren = async (postId) => {
+  for (const childCollection of ["likes", "replies"]) {
+    const childCollectionRef = collection(db, "communityPosts", postId, childCollection);
+    while (true) {
+      const snapshot = await getDocs(query(childCollectionRef, limit(400)));
+      if (snapshot.empty) break;
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((item) => batch.delete(item.ref));
+      await batch.commit();
+    }
+  }
+};
+
+const loadDeveloperRecords = async () => {
+  if (!isDeveloper(currentUser)) return;
+  developerSupportRecords.textContent = "支援記録を読み込んでいます…";
+  developerPostRecords.textContent = "投稿を読み込んでいます…";
+  try {
+    const [supportSnapshot, postSnapshot] = await Promise.all([
+      getDocs(query(collection(db, "supportEvents"), orderBy("createdAt", "desc"))),
+      getDocs(query(collection(db, "communityPosts"), orderBy("createdAt", "desc"))),
+    ]);
+    developerSupportRecords.replaceChildren(...supportSnapshot.docs.map((item) =>
+      renderDeveloperSupportRecord({ id: item.id, data: item.data() })));
+    developerPostRecords.replaceChildren(...postSnapshot.docs.map((item) =>
+      renderDeveloperPost({ id: item.id, data: item.data() })));
+    if (!supportSnapshot.size) developerSupportRecords.textContent = "支援テスト記録はありません。";
+    if (!postSnapshot.size) developerPostRecords.textContent = "投稿はありません。";
+  } catch (error) {
+    console.error("Developer records could not be loaded:", error);
+    setDeveloperDataStatus(`管理データを読み込めませんでした（${error.code || "unknown"}）。Firestoreルールを公開してください。`, true);
+    developerSupportRecords.textContent = "管理データを読み込めませんでした。";
+    developerPostRecords.textContent = "管理データを読み込めませんでした。";
   }
 };
 
@@ -327,17 +505,26 @@ const firestoreMessage = (error) => {
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  currentDisplayName = user?.displayName || "開発者";
   updateDebugIdentity(user);
+  updateDeveloperSubscriptionUi(user);
   loadPostHistory(user);
   setFormEnabled(Boolean(user));
   if (!user) {
     setStatus("Googleログインするとプロフィールを保存できます。");
     saveState.lastChild.textContent = " ログインが必要です";
+    developerSupportRecords.replaceChildren();
+    developerPostRecords.replaceChildren();
     return;
   }
 
   try {
     const profile = await getUserProfile(user.uid);
+    currentDisplayName = profile?.username || profile?.displayName || user.displayName || "開発者";
+    if (isDeveloper(user)) {
+      developerSupportName.value = currentDisplayName;
+      await loadDeveloperRecords();
+    }
     const avatarId = getProfileAvatarId(profile);
     savedCustomAvatarDataUrl = profile?.customAvatarDataUrl || "";
     pendingCustomAvatarDataUrl = "";
@@ -358,7 +545,7 @@ onAuthStateChanged(auth, async (user) => {
   postsStatus.textContent = `投稿履歴の認証状態を確認できませんでした（${error.code || "unknown"}）。`;
 });
 
-developerModeSave.addEventListener("click", () => {
+developerModeSave.addEventListener("click", async () => {
   if (!isDeveloper(currentUser)) return;
   const paidAmountYen = Number(developerPaidAmount.value);
   if (!Number.isSafeInteger(paidAmountYen) || paidAmountYen < 0 || paidAmountYen > 100000000) {
@@ -372,14 +559,83 @@ developerModeSave.addEventListener("click", () => {
       paidAmountYen,
       bypassLimits: developerLimitBypass.checked,
     };
-    saveDeveloperOverrides(currentUser, overrides);
-    bioInput.maxLength = overrides.bypassLimits ? 2000 : 160;
-    developerModeStatus.textContent = `テスト設定を保存しました（サブスク: ${overrides.subscriptionActive ? "加入中" : "未加入"}、テスト表示額: ${paidAmountYen.toLocaleString("ja-JP")}円）。各ページを再読み込みすると上限設定が反映されます。実際の契約・決済記録には反映されません。`;
-    developerModeStatus.dataset.state = "info";
+    const previousOverrides = getDeveloperOverrides(currentUser);
+    const publishSupportEvent = paidAmountYen > 0 && paidAmountYen !== previousOverrides.paidAmountYen;
+    developerModeSave.disabled = true;
+    developerModeStatus.textContent = publishSupportEvent ? "設定と公開用テスト記録を保存しています…" : "テスト設定を保存しています…";
+    const save = async () => {
+      if (publishSupportEvent) {
+        await addDoc(collection(db, "supportEvents"), {
+          donorName: currentDisplayName.slice(0, 40),
+          amountYen: paidAmountYen,
+          testMode: true,
+          createdByUid: currentUser.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      saveDeveloperOverrides(currentUser, overrides);
+      bioInput.maxLength = overrides.bypassLimits ? 2000 : 160;
+      updateDeveloperSubscriptionUi(currentUser);
+      developerModeStatus.textContent = `テスト設定を保存しました（サブスク: ${overrides.subscriptionActive ? "加入中" : "未加入"}、テスト表示額: ${paidAmountYen.toLocaleString("ja-JP")}円）。実際の契約・決済記録には反映されません。${publishSupportEvent ? " ホームの支援リストに「開発テスト・実決済なし」として公開しました。" : ""}`;
+      developerModeStatus.dataset.state = "info";
+      await loadDeveloperRecords();
+    };
+    try {
+      await save();
+    } catch (error) {
+      console.error("Developer Mode settings or support test record could not be saved:", error);
+      developerModeStatus.textContent = `テスト設定を保存できませんでした（${error.code || error.message || "unknown"}）。Firestoreルールを公開してください。`;
+      developerModeStatus.dataset.state = "error";
+    } finally {
+      developerModeSave.disabled = false;
+    }
   } catch (error) {
     console.error("Developer Mode settings could not be saved:", error);
     developerModeStatus.textContent = `テスト設定を保存できませんでした: ${error.message}`;
     developerModeStatus.dataset.state = "error";
+  }
+});
+
+developerSupportAddForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!isDeveloper(currentUser)) return;
+  const donorName = developerSupportName.value.trim();
+  const amountYen = Number(developerSupportAmount.value);
+  if (!donorName || donorName.length > 40 || !Number.isSafeInteger(amountYen) || amountYen < 1 || amountYen > 100000000) {
+    setDeveloperDataStatus("表示名と金額（1〜100,000,000円の整数）を確認してください。", true);
+    return;
+  }
+  try {
+    await addDoc(collection(db, "supportEvents"), {
+      donorName,
+      amountYen,
+      testMode: true,
+      createdByUid: currentUser.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    developerSupportAmount.value = "";
+    setDeveloperDataStatus("開発テスト・実決済なしの支援記録を追加しました。");
+    await loadDeveloperRecords();
+  } catch (error) {
+    console.error("Developer support test record could not be added:", error);
+    setDeveloperDataStatus(`支援記録を追加できませんでした（${error.code || "unknown"}）。Firestoreルールを公開してください。`, true);
+  }
+});
+
+aiFilterToggle.addEventListener("change", () => {
+  if (!isDeveloperSubscriptionActive(currentUser)) return;
+  try {
+    setDeveloperAIFilter(currentUser, aiFilterToggle.checked);
+    aiFilterStatus.textContent = aiFilterToggle.checked
+      ? "AIタグ投稿を非表示にしました。"
+      : "AIタグ投稿を表示します。";
+  } catch (error) {
+    console.error("Developer AI filter setting could not be saved:", error);
+    aiFilterToggle.checked = false;
+    aiFilterStatus.textContent = `設定を保存できませんでした: ${error.message}`;
+    aiFilterStatus.dataset.state = "error";
   }
 });
 

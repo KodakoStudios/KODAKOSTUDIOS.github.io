@@ -3,7 +3,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/fi
 import { auth } from "./firebase-auth.js";
 import { db, getDisplayName, getProfileAvatarId, getUserProfile, PROFILE_AVATARS } from "./social-data.js";
 import { blockUser, followUser, getBlockedUserLimit, MAX_BLOCKED_USERS, unblockUser, unfollowUser } from "./social-graph.js";
-import { DEVELOPER_UID, getDeveloperOverrides } from "./developer-mode.js";
+import { DEVELOPER_UID, getDeveloperAIFilter, getDeveloperOverrides, isDeveloperSubscriptionActive } from "./developer-mode.js";
+import { createVerifiedMark } from "./verified-mark.js";
 
 const postsRef = collection(db, "communityPosts");
 const form = document.getElementById("fan-comment-form");
@@ -126,9 +127,18 @@ const createReply = (reply) => {
   authorLink.textContent = reply.authorName || "Googleユーザー";
   authorLink.setAttribute("aria-label", `${authorLink.textContent}のプロフィールを見る`);
   author.append(authorLink);
+  content.append(author);
+  if (reply.authorUsername) {
+    const username = document.createElement("small");
+    username.className = "community-author-username";
+    username.textContent = `@${reply.authorUsername}`;
+    content.append(username);
+  }
+  const replyVerifiedMark = createVerifiedMark(reply.uid);
+  if (replyVerifiedMark) authorLink.append(" ", replyVerifiedMark);
   const text = document.createElement("p");
   text.textContent = reply.content;
-  content.append(author, text);
+  content.append(text);
   item.append(content);
   return item;
 };
@@ -169,9 +179,12 @@ const createPostElement = (postId, post) => {
   authorGroup.append(author);
   if (post.authorUsername) {
     const username = document.createElement("small");
+    username.className = "community-author-username";
     username.textContent = `@${post.authorUsername}`;
     authorGroup.append(username);
   }
+  const postVerifiedMark = createVerifiedMark(post.uid);
+  if (postVerifiedMark) authorLink.append(" ", postVerifiedMark);
   const date = document.createElement("time");
   if (post.createdAt?.toDate) {
     const timestamp = post.createdAt.toDate();
@@ -376,6 +389,7 @@ const renderPosts = () => {
     const post = item.data();
     if (currentUser && post.uid !== currentUser.uid && (blockedIds.has(post.uid) || blockedByIds.has(post.uid))) return;
     if (activeFilter !== "all" && (post.type || "comment") !== activeFilter) return;
+    if (currentUser?.uid === DEVELOPER_UID && isDeveloperSubscriptionActive(currentUser) && getDeveloperAIFilter(currentUser) && post.isAiGenerated) return;
     if (activeSearchTerm && ![post.content, post.authorName, post.authorUsername].some((value) => String(value || "").toLocaleLowerCase("ja").includes(activeSearchTerm))) return;
     fragment.append(createPostElement(item.id, post));
   });
@@ -423,7 +437,9 @@ searchForm.addEventListener("submit", async (event) => {
       validResults.forEach(({ uid, profile }) => {
         const link = document.createElement("a");
         link.href = `profile.html?username=${encodeURIComponent(profile.username)}`;
-        link.textContent = `${profile.displayName || "ユーザー"}${profile.username ? ` @${profile.username}` : ""}`;
+        link.append(document.createTextNode(`${profile.displayName || "ユーザー"}${profile.username ? ` @${profile.username}` : ""}`));
+        const verifiedMark = createVerifiedMark(uid);
+        if (verifiedMark) link.append(" ", verifiedMark);
         searchUsers.append(link);
       });
     }
@@ -481,7 +497,9 @@ onAuthStateChanged(auth, async (user) => {
       if (followUnsubscribe) followUnsubscribe();
       if (blockedUnsubscribe) blockedUnsubscribe();
       if (blockedByUnsubscribe) blockedByUnsubscribe();
-      userLabel.textContent = `${name} としてログイン中`;
+      userLabel.replaceChildren(document.createTextNode(`${name}${currentUsername ? ` @${currentUsername}` : ""} としてログイン中`));
+      const verifiedMark = createVerifiedMark(user.uid);
+      if (verifiedMark) userLabel.append(" ", verifiedMark);
       renderComposerAvatar();
       followUnsubscribe = onSnapshot(collection(db, "profiles", user.uid, "following"), (snapshot) => {
         followingIds = new Set(snapshot.docs.map((item) => item.id));
